@@ -1,0 +1,10 @@
+.output/
+.wxt/
+node_modules/
+.env
+.env.*
+!.env.example
+*.local
+*.zip
+*.tsbuildinfo
+.DS_Store
