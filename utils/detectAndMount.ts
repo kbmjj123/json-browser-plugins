@@ -110,6 +110,7 @@ export function detectAndMount(
 
   const wechatUrl = browser.runtime.getURL('/qr/wechat-pay.png')
   const alipayUrl = browser.runtime.getURL('/qr/alipay.png')
+  const iconUrl = browser.runtime.getURL('/icon-32.png')
 
   // The shared shell renders the top bar, site/support links, the QR modal and
   // the raw/tree toggle; the editor itself is mounted inside it. This is the
@@ -122,6 +123,7 @@ export function detectAndMount(
     kofiUrl: KO_FI_URL,
     wechatUrl,
     alipayUrl,
+    iconUrl,
     showQr: options.locale === 'zh',
   })
   const shell = app.mount(container) as unknown as ShellHandle

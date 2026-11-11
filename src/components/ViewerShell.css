@@ -1,0 +1,210 @@
+/* ViewerShell chrome styles.
+ *
+ * This file is imported as a string (`?inline`) and injected into the root node
+ * the component is mounted in — a shadow root for the content-script (page
+ * injection) path, or `document.head` for the last-preview page. Keeping it out
+ * of an SFC `<style scoped>` block is deliberate: Vue injects scoped styles into
+ * `document.head`, which cannot pierce a shadow boundary, so the chrome would
+ * render unstyled when the viewer is mounted inside a shadow root. The shadow
+ * boundary already isolates this CSS, so scoping via `data-v-*` attributes is
+ * unnecessary. */
+.vsh {
+  --v-bg: #ffffff;
+  --v-fg: #0f172a;
+  --v-bar-bg: #f8fafc;
+  --v-line: #e2e8f0;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  background: var(--v-bg);
+  color: var(--v-fg);
+  font: 14px/1.5 system-ui, -apple-system, sans-serif;
+}
+.vsh.dark {
+  --v-bg: #020617;
+  --v-fg: #f1f5f9;
+  --v-bar-bg: #0f172a;
+  --v-line: #1e293b;
+}
+.bar {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 14px;
+  border-bottom: 1px solid var(--v-line);
+  background: var(--v-bar-bg);
+}
+.title {
+  font-size: 13px;
+  font-weight: 700;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.logo {
+  flex: 0 0 auto;
+  width: 20px;
+  height: 20px;
+  border-radius: 5px;
+  object-fit: contain;
+}
+.topright {
+  margin-left: auto;
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 8px;
+}
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  box-sizing: border-box;
+  height: 30px;
+  line-height: 1;
+  cursor: pointer;
+  text-decoration: none;
+  border: 1px solid var(--v-line);
+  background: transparent;
+  color: inherit;
+  border-radius: 9999px;
+  padding: 0 12px;
+  font: 600 12px system-ui, -apple-system, sans-serif;
+}
+.btn:hover {
+  border-color: #0052d4;
+  color: #0052d4;
+}
+.btn.site {
+  background: #0052d4;
+  color: #fff;
+  border-color: transparent;
+}
+.btn.site:hover {
+  background: #003ea8;
+  color: #fff;
+}
+.btn.site .ext {
+  font-size: 11px;
+  opacity: 0.8;
+}
+.btn.kofi {
+  background: transparent;
+  color: #d97757;
+  border-color: rgba(217, 119, 87, 0.55);
+}
+.btn.kofi:hover {
+  background: rgba(217, 119, 87, 0.12);
+  color: #d97757;
+  border-color: rgba(217, 119, 87, 0.55);
+}
+.body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
+}
+.je {
+  display: block;
+  height: 100%;
+}
+.raw {
+  margin: 0;
+  padding: 16px;
+  height: 100%;
+  box-sizing: border-box;
+  overflow: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+  font: 13px/1.6 ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+.qr-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+  font-family: system-ui, -apple-system, sans-serif;
+}
+.qr-card {
+  background: #fff;
+  color: #1f2937;
+  border-radius: 16px;
+  padding: 22px 24px 24px;
+  width: 320px;
+  max-width: calc(100vw - 32px);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.35);
+  position: relative;
+  text-align: center;
+}
+.qr-card.dark {
+  background: #1e293b;
+  color: #e2e8f0;
+}
+.qr-title {
+  font-size: 16px;
+  font-weight: 700;
+  margin: 0 0 4px;
+}
+.qr-sub {
+  font-size: 12px;
+  color: #64748b;
+  margin: 0 0 18px;
+}
+.qr-card.dark .qr-sub {
+  color: #94a3b8;
+}
+.qr-grid {
+  display: flex;
+  gap: 18px;
+  justify-content: center;
+}
+.qr-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+.qr-item img {
+  width: 132px;
+  height: 132px;
+  border-radius: 10px;
+  border: 1px solid #e2e8f0;
+  background: #fff;
+  object-fit: contain;
+}
+.qr-card.dark .qr-item img {
+  border-color: #334155;
+  background: #fff;
+}
+.qr-item span {
+  font-size: 13px;
+  font-weight: 600;
+}
+.qr-close {
+  position: absolute;
+  top: 10px;
+  right: 12px;
+  border: 0;
+  background: transparent;
+  color: #94a3b8;
+  font-size: 22px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 2px 6px;
+  border-radius: 8px;
+}
+.qr-close:hover {
+  background: rgba(0, 0, 0, 0.06);
+  color: #475569;
+}
+.qr-card.dark .qr-close:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #cbd5e1;
+}

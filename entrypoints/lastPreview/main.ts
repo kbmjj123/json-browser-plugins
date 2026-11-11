@@ -93,6 +93,7 @@ async function main(): Promise<void> {
   const editorOptions = buildOptions(opts, value)
   const wechatUrl = browser.runtime.getURL('/qr/wechat-pay.png')
   const alipayUrl = browser.runtime.getURL('/qr/alipay.png')
+  const iconUrl = browser.runtime.getURL('/icon-32.png')
 
   const shellApp = createApp(ViewerShell, {
     editorOptions,
@@ -101,6 +102,7 @@ async function main(): Promise<void> {
     kofiUrl: KO_FI_URL,
     wechatUrl,
     alipayUrl,
+    iconUrl,
     showQr: locale === 'zh',
   })
   const shell = shellApp.mount(host) as unknown as ShellHandle & ComponentPublicInstance
