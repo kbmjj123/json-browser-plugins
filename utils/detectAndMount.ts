@@ -122,6 +122,9 @@ export function detectAndMount(
   // `setOptions()` normalizes the FULL options object — always pass `value`,
   // otherwise a config change would silently clear the editor.
   function editorOptions(next: ExtensionOptions): JsonEditorOptions {
+    // Table view is only meaningful for array roots; for object/scalar roots we
+    // drop the whole mode switcher (fixed split, nothing to toggle).
+    const arrayRoot = /^\s*\[/.test(doc.text)
     return {
       value: doc.text,
       view: 'both',
@@ -135,7 +138,7 @@ export function detectAndMount(
       // Plugin-only UX: split-first, a single toolbar row with the view
       // switcher on the right, chevron expand toggles, bare image values, and
       // synced split-pane scrolling.
-      allowedViews: [],
+      allowedViews: arrayRoot ? ['both', 'table'] : [],
       searchInToolbar: true,
       bareImage: true,
       linkScroll: true,
