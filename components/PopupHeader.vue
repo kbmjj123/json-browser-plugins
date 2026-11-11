@@ -7,7 +7,7 @@ const { t } = useI18n()
 </script>
 
 <template>
-  <header class="flex items-center gap-2 border-b border-surface-200 pb-2.5 dark:border-surface-700">
+  <header class="flex items-center gap-2 border-b border-surface-200 py-2.5 dark:border-surface-700">
     <div class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary-600 text-white">
       <Braces :size="18" />
     </div>

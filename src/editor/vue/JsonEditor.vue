@@ -36,9 +36,18 @@
 
         <span class="je-sep" />
 
+        <select v-model="searchMode" class="je-mode je-site-select" :aria-label="t('search_mode')">
+          <option value="key">{{ t('mode_key') }}</option>
+          <option value="value">{{ t('mode_value') }}</option>
+          <option value="path">{{ t('mode_path') }}</option>
+          <option value="all">{{ t('mode_all') }}</option>
+          <option value="jsonpath">{{ t('mode_jsonpath') }}</option>
+        </select>
+
         <span class="je-search">
           <span v-html="icons.search" />
           <input
+            ref="searchInput"
             v-model="searchQuery"
             class="je-site-input"
             type="search"
@@ -48,13 +57,6 @@
             @keydown.esc="clearSearch"
           />
         </span>
-        <select v-model="searchMode" class="je-mode je-site-select" :aria-label="t('search_mode')">
-          <option value="key">{{ t('mode_key') }}</option>
-          <option value="value">{{ t('mode_value') }}</option>
-          <option value="path">{{ t('mode_path') }}</option>
-          <option value="all">{{ t('mode_all') }}</option>
-          <option value="jsonpath">{{ t('mode_jsonpath') }}</option>
-        </select>
 
         <span v-if="searchResultLabel" class="je-count" :class="{ 'is-error': searchResult.invalid }">
           {{ searchResultLabel }}
@@ -103,6 +105,7 @@
           :title="allExpanded ? t('collapse_all') : t('expand_all')"
           @click="onToggleAll"
         >
+          <span>{{ allExpanded ? t('collapse_all') : t('expand_all') }}</span>
           <span v-html="allExpanded ? icons.collapse : icons.expand" />
         </button>
 
@@ -222,12 +225,8 @@
       <span class="je-status-right">{{ t('chars', { n: text.length }) }}</span>
     </div>
 
-    <div v-if="attribution || supportUrl" class="je-footer">
+    <div v-if="attribution" class="je-footer">
       <a v-if="attribution" :href="attributionUrl" target="_blank" rel="noopener">{{ t('attribution', { name: 'jsontoolbox.cc' }) }}</a>
-      <span v-if="attribution && supportUrl" class="je-footer-sep">·</span>
-      <a v-if="supportUrl" :href="supportUrl" target="_blank" rel="noopener me nofollow">
-        <span v-html="icons.coffee" /> {{ t('support') }}
-      </a>
     </div>
 
     <div v-if="showCopiedToast" class="je-toast" role="status" aria-live="polite">
@@ -413,12 +412,13 @@ const allowedViewOptions = computed<JsonEditorView[]>(
   () => props.allowedViews ?? ['editor', 'tree', 'both', 'table']
 )
 const searchQuery = ref('')
+const searchInput = ref<HTMLInputElement | null>(null)
 const searchMode = ref<TreeSearchMode>('key')
 
 // Tree state is mirrored up here because the plugin renders the tree's
 // expand/collapse control, match count and search navigation in one toolbar.
 const treeRef = ref<InstanceType<typeof TreeView> | null>(null)
-const allExpanded = ref(false)
+const allExpanded = ref(true)
 const searchResult = ref<SearchSummary>({
   total: 0, invalid: false, truncated: false, currentIndex: -1, rows: [],
 })
@@ -455,6 +455,20 @@ function onSearchEnter(e: KeyboardEvent) {
 function clearSearch() {
   searchQuery.value = ''
   showResults.value = false
+}
+
+// Intercept Ctrl/Cmd+F while the preview (tree) UI is visible: the page is
+// covered by a full-screen overlay, so the browser's native find bar is useless
+// here. Focus our in-toolbar search box instead. In raw mode the editor is
+// display:none (getClientRects empty), so we let the browser find work.
+function onFindShortcut(e: KeyboardEvent) {
+  if (!(e.ctrlKey || e.metaKey)) return
+  if (e.key !== 'f' && e.key !== 'F') return
+  const input = searchInput.value
+  if (!input || input.getClientRects().length === 0) return
+  e.preventDefault()
+  input.focus()
+  input.select()
 }
 
 // ── Split-view scroll sync (opt-in via `linkScroll`) ──────────────────────────
@@ -499,6 +513,8 @@ function setupScrollSync() {
 watch([view, () => props.linkScroll], setupScrollSync)
 onMounted(setupScrollSync)
 onBeforeUnmount(() => scrollCleanup?.())
+onMounted(() => window.addEventListener('keydown', onFindShortcut))
+onBeforeUnmount(() => window.removeEventListener('keydown', onFindShortcut))
 
 const hasContent = computed(() => text.value.trim().length > 0)
 const errorInfo = computed(() => {

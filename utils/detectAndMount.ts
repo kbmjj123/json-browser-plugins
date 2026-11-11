@@ -99,12 +99,7 @@ export function detectAndMount(
   bar.className = 'bar'
   const title = document.createElement('span')
   title.className = 'title'
-  const siteLink = document.createElement('a')
-  siteLink.href = SITE_URL
-  siteLink.target = '_blank'
-  siteLink.rel = 'noopener'
-  siteLink.textContent = 'jsontoolbox.cc'
-  title.appendChild(siteLink)
+
   const barToggle = document.createElement('button')
   barToggle.type = 'button'
   bar.append(title, barToggle)
@@ -152,6 +147,29 @@ export function detectAndMount(
   root.appendChild(wrap)
   document.body.appendChild(viewerHost)
 
+  // ── Floating "back to tree" button (raw mode only) ─────────────────────
+  // Switching to raw hides the overlay (and its in-bar toggle), so we surface
+  // a standalone button to return to the JSON tree preview.
+  const rawHost = fixedHost('jsontb-rawtoggle', { top: '0', left: '16px' })
+  const rawRoot = rawHost.attachShadow({ mode: 'open' })
+  const rawStyle = document.createElement('style')
+  rawStyle.textContent = `
+    :host { all: initial }
+    a, button { display: inline-flex; align-items: center; gap: 4px;
+      cursor: pointer; text-decoration: none; margin-top: 8px;
+      background: #0052D4; color: #fff; border: 0; border-radius: 9999px;
+      padding: 7px 13px; box-shadow: 0 4px 14px rgba(0,0,0,.18);
+      font: 600 12px system-ui, -apple-system, sans-serif }
+    a:hover, button:hover { background: #003ea8 }
+  `
+  const rawAnchor = document.createElement('button')
+  rawAnchor.type = 'button'
+  rawAnchor.textContent = labels.tree
+  rawAnchor.addEventListener('click', toggle)
+  rawRoot.append(rawStyle, rawAnchor)
+  rawHost.style.display = 'none'
+  document.body.appendChild(rawHost)
+
   let mode: 'tree' | 'raw' = 'tree'
   let currentLabels = labels
   let destroyed = false
@@ -194,9 +212,11 @@ export function detectAndMount(
       raw.style.setProperty('display', 'none', 'important')
       viewerContainer?.style.setProperty('display', 'none', 'important')
       viewerHost.style.setProperty('display', 'block', 'important')
+      rawHost.style.display = 'none'
     } else {
       showRawText()
       viewerHost.style.setProperty('display', 'none', 'important')
+      rawHost.style.display = 'block'
     }
     updateLabels()
   }
@@ -206,27 +226,51 @@ export function detectAndMount(
   }
   barToggle.addEventListener('click', toggle)
 
-  // ── Always-visible top-right site link (both raw and tree modes) ──────────
-  // Drives traffic back to the site. Appended last so it sits above the overlay.
-  const siteHost = fixedHost(SITELINK_ID, { top: '16px', right: '16px' })
+  // ── Always-visible top-right links (both raw and tree modes) ─────────────
+  // A site link drives traffic back home, and a "buy me a coffee" support link
+  // thanks users. Appended last so they sit above the overlay.
+  const KO_FI_URL = 'https://ko-fi.com'
+  const kofiText = options.locale === 'zh' ? '☕ 请喝咖啡' : '☕ Buy me a coffee'
+  const siteHost = fixedHost(SITELINK_ID, { top: '0', right: '16px' })
   const siteRoot = siteHost.attachShadow({ mode: 'open' })
   const siteStyle = document.createElement('style')
   siteStyle.textContent = `
     :host { all: initial }
+    .row { display: flex; align-items: center; gap: 8px; margin-top: 8px; }
     a { display: inline-flex; align-items: center; gap: 4px;
+      box-sizing: border-box; line-height: 1;
       cursor: pointer; text-decoration: none;
-      background: #0052D4; color: #fff; border-radius: 9999px;
+      background: #0052D4; color: #fff; border: 1px solid transparent; border-radius: 9999px;
       padding: 7px 13px; box-shadow: 0 4px 14px rgba(0,0,0,.18);
       font: 600 12px system-ui, -apple-system, sans-serif }
     a:hover { background: #003ea8 }
-    a::after { content: ' ↗' }
+    a.site::after { content: ' ↗' }
+    a.kofi {
+      background: transparent;
+      color: #d97757;
+      border-color: rgba(217,119,87,.55);
+      box-shadow: none;
+    }
+    a.kofi:hover { background: rgba(217,119,87,.12); }
   `
   const siteAnchor = document.createElement('a')
+  siteAnchor.className = 'site'
   siteAnchor.href = SITE_URL
   siteAnchor.target = '_blank'
   siteAnchor.rel = 'noopener'
   siteAnchor.textContent = currentLabels.site
-  siteRoot.append(siteStyle, siteAnchor)
+
+  const kofiAnchor = document.createElement('a')
+  kofiAnchor.className = 'kofi'
+  kofiAnchor.href = KO_FI_URL
+  kofiAnchor.target = '_blank'
+  kofiAnchor.rel = 'noopener'
+  kofiAnchor.textContent = kofiText
+
+  const siteRow = document.createElement('div')
+  siteRow.className = 'row'
+  siteRow.append(siteAnchor, kofiAnchor)
+  siteRoot.append(siteStyle, siteRow)
   document.body.appendChild(siteHost)
 
   function apply(next: ExtensionOptions, nextLabels: ViewerLabels): void {
@@ -235,7 +279,6 @@ export function detectAndMount(
     const dark = resolveDark(next.theme)
     editor.setOptions(editorOptions(next))
     title.textContent = nextLabels.title
-    title.appendChild(siteLink)
     siteAnchor.textContent = nextLabels.site
     paint(dark)
     updateLabels()
@@ -248,6 +291,7 @@ export function detectAndMount(
     restoreRawDisplay()
     restoreViewerContainer()
     siteHost.remove()
+    rawHost.remove()
     viewerHost.remove()
   }
 

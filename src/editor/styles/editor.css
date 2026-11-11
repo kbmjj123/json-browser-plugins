@@ -135,7 +135,10 @@
   width: 13px;
   height: 13px;
   position: absolute;
+  top: 0;
+  bottom: 0;
   left: 8px;
+  margin: auto 0;
   color: var(--je-fg-faint);
   pointer-events: none;
 }
@@ -1337,3 +1340,41 @@ select.je-site-select:hover { background: var(--je-bg-alt); }
 }
 .je-large-file-x:hover { background: rgba(0, 0, 0, 0.06); }
 .je-dark .je-large-file-x:hover { background: rgba(255, 255, 255, 0.1); }
+
+/* ── Theme-aware scrollbars ───────────────────────────────────
+   Colours come from --je-scrollbar / --je-scrollbar-hover, which flip with
+   light/dark (see theme.css), so the rails stay legible in both modes. */
+.je-root {
+  scrollbar-width: thin;
+  scrollbar-color: var(--je-scrollbar) transparent;
+}
+.je-root ::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+.je-root ::-webkit-scrollbar-track {
+  background: transparent;
+}
+.je-root ::-webkit-scrollbar-thumb {
+  background-color: var(--je-scrollbar);
+  border-radius: 9999px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+.je-root ::-webkit-scrollbar-thumb:hover {
+  background-color: var(--je-scrollbar-hover);
+}
+/* The lightbox is a fixed dark overlay, so keep its scrollbar light and the
+   thumbnail strip's slim 4px rail intact. */
+.je-lightbox ::-webkit-scrollbar-thumb {
+  background-color: rgba(255, 255, 255, 0.25);
+}
+.je-lightbox ::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(255, 255, 255, 0.4);
+}
+.je-lightbox-thumbs::-webkit-scrollbar {
+  height: 4px;
+}
+.je-lightbox-thumbs::-webkit-scrollbar-thumb {
+  background-color: rgba(255, 255, 255, 0.2);
+}

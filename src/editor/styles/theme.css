@@ -34,6 +34,8 @@
   --je-font-mono: 'Menlo', 'Monaco', 'Consolas', 'Liberation Mono', 'Courier New', monospace;
   --je-font-size: 13px;
   --je-font-size-mono: 13px;
+  --je-scrollbar: rgba(100, 116, 139, 0.45);
+  --je-scrollbar-hover: rgba(100, 116, 139, 0.75);
 }
 
 .je-dark,
@@ -60,4 +62,6 @@
   --je-warn-bg: #422006;
   --je-warn-border: #713f12;
   --je-warn-fg: #fbbf24;
+  --je-scrollbar: rgba(148, 163, 184, 0.35);
+  --je-scrollbar-hover: rgba(148, 163, 184, 0.6);
 }
