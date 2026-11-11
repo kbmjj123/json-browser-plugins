@@ -51,11 +51,16 @@ export async function setOptions(next: Partial<ExtensionOptions>): Promise<Exten
   return merged
 }
 
-/** Resolve a theme setting to a concrete dark/light decision. */
+/** Resolve a theme setting to a concrete dark/light decision.
+ *
+ * `auto` follows the time of day — light between 06:00 and 18:00, dark
+ * otherwise — so a freshly loaded view reflects the current hour rather than the
+ * OS colour scheme. Decided per call; long-lived views re-resolve on each apply. */
 export function resolveDark(theme: ThemeOption): boolean {
   if (theme === 'dark') return true
   if (theme === 'light') return false
-  return typeof matchMedia === 'function' && matchMedia('(prefers-color-scheme: dark)').matches
+  const hour = new Date().getHours()
+  return hour < 6 || hour >= 18
 }
 
 /** Apply `.dark` on <html>. Used by the popup on mount / change. */

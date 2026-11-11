@@ -1,0 +1,93 @@
+/* ViewerSettings panel styles.
+ *
+ * Injected into the same root as ViewerShell (shadow root or document.head) by
+ * ViewerSettings.vue — not `<style scoped>`, which would be orphaned in head.
+ * Colours reuse ViewerShell's `--v-*` custom properties so the panel tracks the
+ * light/dark theme automatically. */
+.vs {
+  width: 280px;
+  max-width: calc(100vw - 32px);
+  box-sizing: border-box;
+  padding: 0 0 4px;
+  font: 13px/1.5 system-ui, -apple-system, sans-serif;
+  color: var(--v-fg);
+}
+.vs-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 12px 8px;
+}
+.vs-title {
+  font-size: 13px;
+  font-weight: 700;
+}
+.vs-close {
+  border: 0;
+  background: transparent;
+  color: var(--v-muted);
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 2px 6px;
+  border-radius: 6px;
+}
+.vs-close:hover {
+  background: rgba(0, 0, 0, 0.06);
+  color: var(--v-fg);
+}
+.vsh.dark .vs-close:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+.vs-list {
+  display: flex;
+  flex-direction: column;
+}
+.vs-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 9px 12px;
+  border-top: 1px solid var(--v-line);
+}
+.vs-label {
+  color: var(--v-fg);
+}
+.vs select {
+  appearance: none;
+  -webkit-appearance: none;
+  background: var(--v-bar-bg);
+  color: var(--v-fg);
+  border: 1px solid var(--v-line);
+  border-radius: 8px;
+  padding: 5px 10px;
+  font: 600 12px system-ui, -apple-system, sans-serif;
+  cursor: pointer;
+}
+.vs input[type='checkbox'] {
+  width: 16px;
+  height: 16px;
+  accent-color: #0052d4;
+  cursor: pointer;
+}
+.vs-footer {
+  padding: 10px 12px 4px;
+  border-top: 1px solid var(--v-line);
+  margin-top: 4px;
+}
+.vs-privacy {
+  margin: 0 0 8px;
+  color: var(--v-muted);
+  font-size: 11px;
+  line-height: 1.5;
+}
+.vs-site {
+  color: #0052d4;
+  text-decoration: none;
+  font-weight: 600;
+  font-size: 12px;
+}
+.vs-site:hover {
+  text-decoration: underline;
+}

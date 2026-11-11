@@ -13,7 +13,7 @@ import { createApp } from 'vue'
 import { browser } from 'wxt/browser'
 import ViewerShell from '../src/components/ViewerShell.vue'
 import type { JsonEditorOptions } from '../src/editor/wc/defineJsonEditor'
-import { type ExtensionOptions } from './options'
+import { type ExtensionOptions, resolveDark } from './options'
 import { SITE_URL, KO_FI_URL } from './constants'
 
 export interface JsonDocument {
@@ -94,7 +94,7 @@ export function detectAndMount(
     return {
       value: doc.text,
       view: next.view ?? 'both',
-      theme: next.theme,
+      theme: resolveDark(next.theme) ? 'dark' : 'light',
       locale: next.locale,
       indent: next.indent,
       readOnly: false,
@@ -124,7 +124,7 @@ export function detectAndMount(
     wechatUrl,
     alipayUrl,
     iconUrl,
-    showQr: options.locale === 'zh',
+    hideAuto: true,
   })
   const shell = app.mount(container) as unknown as ShellHandle
 

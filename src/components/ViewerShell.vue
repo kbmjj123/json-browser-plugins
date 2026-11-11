@@ -7,7 +7,10 @@ import {
 } from '../editor/wc/defineJsonEditor'
 import { editorCss } from '../editor/editorCss'
 import { resolveDark } from '../../utils/options'
+import { injectStylesIntoRoot } from '../../utils/injectShadowStyles'
+import { createTranslator, type Locale } from '../editor/i18n'
 import viewerShellCss from './ViewerShell.css?inline'
+import ViewerSettings from './ViewerSettings.vue'
 
 export interface ShellLabels {
   title: string
@@ -26,8 +29,9 @@ const props = defineProps<{
   alipayUrl?: string
   /** Extension icon shown at the left of the title bar. Empty hides it. */
   iconUrl?: string
-  /** Chinese locale shows the payment-QR modal instead of visiting Ko-fi. */
-  showQr?: boolean
+  /** Hide the auto-beautify toggle inside the settings panel. Used by the page
+   *  overlay, where turning auto off would destroy the overlay itself. */
+  hideAuto?: boolean
 }>()
 
 const emit = defineEmits<{ change: [value: string] }>()
@@ -39,25 +43,53 @@ const opts = ref<JsonEditorOptions>(props.editorOptions)
 const labels = ref<ShellLabels>(props.labels)
 
 const dark = computed(() => resolveDark(opts.value.theme))
+// The QR / Ko-fi behaviour follows the locale, so it updates live when the user
+// switches language in the settings panel (no separate `showQr` prop needed).
+const showQr = computed(() => opts.value.locale === 'zh')
 const mode = ref<'tree' | 'raw'>('tree')
 const showQrModal = ref(false)
+const showSettings = ref(false)
+
+// Raw/tree toggle copy is driven by the user-chosen locale (the same source the
+// editor and settings panel use), so switching language relabels it instantly.
+const t = computed(() =>
+  createTranslator((opts.value.locale === 'zh' ? 'zh' : 'en') as Locale),
+)
 
 const toggleLabel = computed(() =>
-  mode.value === 'tree' ? labels.value.raw : labels.value.tree,
+  mode.value === 'tree' ? t.value('raw') : t.value('tree'),
 )
 
 function toggle(): void {
   mode.value = mode.value === 'tree' ? 'raw' : 'tree'
 }
 
+function toggleSettings(): void {
+  showSettings.value = !showSettings.value
+}
+
 function onKofi(e: Event): void {
-  if (props.showQr && props.wechatUrl) {
+  if (showQr.value && props.wechatUrl) {
     e.preventDefault()
     showQrModal.value = true
   }
 }
 function closeQr(): void {
   showQrModal.value = false
+}
+
+// Close the settings popover when the user clicks/taps anywhere outside it.
+// Clicks inside a shadow root retarget `event.target` to the host when observed
+// from `document`, so we use `composedPath()` (which keeps the true internal
+// nodes) to test membership of the popover wrapper.
+const settingsWrapEl = ref<HTMLElement | null>(null)
+function onDocPointerDown(e: Event): void {
+  if (!showSettings.value) return
+  const wrap = settingsWrapEl.value
+  if (wrap && !e.composedPath().includes(wrap)) showSettings.value = false
+}
+function onDocKeyDown(e: KeyboardEvent): void {
+  if (e.key === 'Escape' && showSettings.value) showSettings.value = false
 }
 
 const changeCbs = new Set<(value: string) => void>()
@@ -72,6 +104,9 @@ const editorMount = ref<HTMLDivElement | null>(null)
 let editor: JsonEditorInstance | null = null
 
 onMounted(() => {
+  document.addEventListener('pointerdown', onDocPointerDown)
+  document.addEventListener('keydown', onDocKeyDown)
+
   const mount = editorMount.value
   if (!mount) return
 
@@ -82,22 +117,12 @@ onMounted(() => {
   // `<style scoped>` would land in `document.head` and fail to pierce the shadow
   // boundary, which is exactly why these styles are injected manually here.
   const rootNode = mount.getRootNode()
-  const SHELL_STYLE_ID = 'viewer-shell-styles'
-  if (rootNode instanceof ShadowRoot) {
-    if (!rootNode.getElementById(SHELL_STYLE_ID)) {
-      const style = document.createElement('style')
-      style.id = SHELL_STYLE_ID
-      style.textContent = `:host { all: initial }\n${viewerShellCss}`
-      rootNode.appendChild(style)
-    }
-  } else if (rootNode === document) {
-    if (!document.getElementById(SHELL_STYLE_ID)) {
-      const style = document.createElement('style')
-      style.id = SHELL_STYLE_ID
-      style.textContent = viewerShellCss
-      document.head.appendChild(style)
-    }
-  }
+  injectStylesIntoRoot(
+    rootNode,
+    'viewer-shell',
+    viewerShellCss,
+    { hostReset: rootNode instanceof ShadowRoot },
+  )
 
   const root = mount.attachShadow({ mode: 'open' })
   const style = document.createElement('style')
@@ -110,6 +135,8 @@ onMounted(() => {
 })
 
 onBeforeUnmount(() => {
+  document.removeEventListener('pointerdown', onDocPointerDown)
+  document.removeEventListener('keydown', onDocKeyDown)
   editor?.destroy()
   editor = null
 })
@@ -135,8 +162,27 @@ defineExpose({
       <img v-if="iconUrl" class="logo" :src="iconUrl" :alt="labels.site" />
       <span class="title">{{ labels.title }}</span>
 
-      <!-- Always-visible right side: raw/tree toggle + site + support links. -->
+      <!-- Always-visible right side: settings + raw/tree toggle + site + support. -->
       <div class="topright">
+        <div class="settings-wrap" ref="settingsWrapEl">
+          <button
+            class="btn icon"
+            type="button"
+            :aria-label="t('settings')"
+            :aria-expanded="showSettings"
+            @click="toggleSettings"
+          >
+            ⚙
+          </button>
+          <div v-if="showSettings" class="settings-pop">
+            <ViewerSettings
+              :locale="(opts.value.locale === 'zh' ? 'zh' : 'en') as 'en' | 'zh'"
+              :hide-auto="hideAuto"
+              :site-url="siteUrl"
+              @close="showSettings = false"
+            />
+          </div>
+        </div>
         <button class="btn toggle" type="button" @click="toggle">
           {{ toggleLabel }}
         </button>

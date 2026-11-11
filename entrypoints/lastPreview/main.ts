@@ -2,7 +2,7 @@ import { createApp, type ComponentPublicInstance } from 'vue'
 import { browser } from 'wxt/browser'
 import ViewerShell from '../../src/components/ViewerShell.vue'
 import type { JsonEditorOptions } from '../../src/editor/wc/defineJsonEditor'
-import { getOptions, STORAGE_KEY, DEFAULT_OPTIONS, type ExtensionOptions } from '../../utils/options'
+import { getOptions, STORAGE_KEY, DEFAULT_OPTIONS, resolveDark, type ExtensionOptions } from '../../utils/options'
 import { SITE_URL, KO_FI_URL } from '../../utils/constants'
 
 const LAST_PREVIEW_KEY = 'lastPreview'
@@ -32,7 +32,7 @@ function buildOptions(next: ExtensionOptions, value: string): JsonEditorOptions 
   return {
     value,
     view: next.view ?? 'both',
-    theme: next.theme,
+    theme: resolveDark(next.theme) ? 'dark' : 'light',
     locale: next.locale,
     indent: next.indent,
     readOnly: false,
@@ -82,7 +82,6 @@ async function main(): Promise<void> {
     document.title = 'JSON Preview'
   }
 
-  const locale = opts.locale
   const labels: ViewerShellLabels = {
     title: document.title,
     raw: browser.i18n.getMessage('viewerRaw'),
@@ -103,7 +102,6 @@ async function main(): Promise<void> {
     wechatUrl,
     alipayUrl,
     iconUrl,
-    showQr: locale === 'zh',
   })
   const shell = shellApp.mount(host) as unknown as ShellHandle & ComponentPublicInstance
 

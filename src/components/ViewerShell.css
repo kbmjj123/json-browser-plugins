@@ -13,6 +13,7 @@
   --v-fg: #0f172a;
   --v-bar-bg: #f8fafc;
   --v-line: #e2e8f0;
+  --v-muted: #64748b;
   position: relative;
   display: flex;
   flex-direction: column;
@@ -27,6 +28,7 @@
   --v-fg: #f1f5f9;
   --v-bar-bg: #0f172a;
   --v-line: #1e293b;
+  --v-muted: #94a3b8;
 }
 .bar {
   flex: 0 0 auto;
@@ -59,6 +61,21 @@
   align-items: center;
   gap: 8px;
 }
+.settings-wrap {
+  position: relative;
+  display: inline-flex;
+}
+.settings-pop {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  z-index: 5;
+  background: var(--v-bg);
+  border: 1px solid var(--v-line);
+  border-radius: 12px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.18);
+  overflow: hidden;
+}
 .btn {
   display: inline-flex;
   align-items: center;
@@ -79,6 +96,11 @@
 .btn:hover {
   border-color: #0052d4;
   color: #0052d4;
+}
+.btn.icon {
+  width: 30px;
+  padding: 0;
+  font-size: 16px;
 }
 .btn.site {
   background: #0052d4;
