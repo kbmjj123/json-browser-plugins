@@ -4,8 +4,8 @@
     "description": "商店与扩展管理页里显示的名称。"
   },
   "extDescription": {
-    "message": "自动美化整个 JSON 页面，支持原始/树形切换。100% 本地处理，数据不会离开你的设备。",
-    "description": "商店描述。"
+    "message": "自动把 JSON 页面变成可搜索、可编辑的树形与分栏视图；本地处理，无账号、无追踪。",
+    "description": "商店搜索结果中的简短描述，上限 132 字符；需与 zh_CN/messages.json 保持一致。"
   },
   "viewerTitle": {
     "message": "JSON Toolbox 查看器",

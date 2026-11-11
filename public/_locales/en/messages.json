@@ -4,8 +4,8 @@
     "description": "Extension name shown in the Chrome Web Store and chrome://extensions."
   },
   "extDescription": {
-    "message": "Automatically beautify JSON pages with a raw/tree viewer. 100% client-side — your data never leaves your device.",
-    "description": "Store listing description."
+    "message": "Auto-beautify JSON pages into a searchable, editable tree and split editor. Runs locally, no account, no tracking.",
+    "description": "Store short description shown in search results. Max 132 chars; keep in sync with public/_locales/zh_CN/messages.json."
   },
   "viewerTitle": {
     "message": "JSON Toolbox viewer",

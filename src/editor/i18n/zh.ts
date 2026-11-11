@@ -115,6 +115,6 @@ export const zh: Messages = {
   image_preview: '图片预览',
   language: '语言',
   auto_beautify: '自动美化网页',
-  privacy: '本扩展不收集任何数据，所有设置仅保存在你的本地设备上。',
+  privacy: '不上传任何数据；设置与最近预览仅存本机。预览图片与媒体时，浏览器可能请求 JSON 中的第三方链接。',
   visit_site: '访问 jsontoolbox.cc',
 }

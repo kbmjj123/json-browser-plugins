@@ -1,197 +1,130 @@
 # JSON Toolbox — browser extension
 
 A WXT + Vue 3 companion extension for [jsontoolbox.cc](https://jsontoolbox.cc).
-Chrome / Edge Manifest V3 only in v1.
+Chrome / Edge **Manifest V3**, `minimum_chrome_version: 116`, version `1.0.0`, MIT.
 
-Source: [github.com/kbmjj123/json-browser-plugins](https://github.com/kbmjj123/json-browser-plugins).
+Source: [github.com/kbmjj123/json-browser-plugins](https://github.com/kbmjj123/json-browser-plugins)
 
 ## What it does
 
-The extension has **one job**: automatically turn raw JSON pages into a readable
-tree. The popup contains **no tools** — it is a config panel plus links that send
-you to the real tools on the site.
+**One job:** automatically turn a raw JSON page into a readable, editable viewer.
+The extension ships no JSON tools of its own — the tools live on the site.
 
-### Automatic on-page JSON viewer
+### Three surfaces
 
-Install it and open any URL that returns JSON (e.g.
-`https://jsonplaceholder.typicode.com/users/1`). The raw `<pre>` is replaced by a
-read-only JSON editor/tree view with:
+| Surface | Trigger | Behaviour |
+|---|---|---|
+| **On-page overlay** | Open any URL whose whole document is JSON | A full-screen viewer in a shadow root covers the raw `<pre>`; the original page is left intact underneath |
+| **Last-preview tab** | Click the toolbar icon | `action.onClicked` opens `lastPreview.html` with the most recently previewed JSON, or an empty editor you can paste into. There is intentionally **no action popup** (a popup suppresses `onClicked`) |
+| **Settings popover** | ⚙ in either viewer's title bar | Six options, applied instantly to every open viewer via `storage.onChanged` |
 
-- a **原始 / 树形 (Raw / Tree)** toggle — a floating button plus one in the toolbar;
-  switching to Raw restores the page's original `<pre>` exactly as it was
-- a `jsontoolbox.cc` link in the viewer toolbar (tree mode) **and** an always-visible
-  "JSON Toolbox ↗" link pinned to the top-right of the viewport (both raw and tree
-  modes) that opens the site — this is the primary traffic-driver back to jsontoolbox.cc
-- live config: changing indentation / theme / language / default view in the
-  popup applies immediately, without reloading the page
+Both viewers render the same `src/components/ViewerShell.vue`, so they look and behave identically. The title bar holds the ⚙ button, a Raw / Tree toggle, a `jsontoolbox.cc` link and a support link (Ko-fi, or a locally bundled WeChat / Alipay QR modal when the UI language is 中文).
 
-Detection is deliberately conservative: the body must contain **exactly one
-content-bearing element — a `<pre>` whose text is valid JSON**. Chrome renders a
-raw JSON response as `<pre>{...}</pre>` **plus** an empty
-`<div class="json-formatter-container">` (its own JSON-viewer mount point);
-empty childless elements and that container are ignored, and the viewer
-container is hidden while our overlay is up so "Raw" always shows plain text.
-Ordinary pages, blog posts and `<pre><code>` documentation samples have
-nav/article/footer siblings and are left completely untouched — **no overlay,
-no notification, no DOM changes**. Only the tool site's own UI hosts
-(`jsontoolbox.cc` / `www.jsontoolbox.cc`) are excluded — subdomains are **not**,
-so the `resources.jsontoolbox.cc` sample files are beautified normally.
-Documents over **2 MiB** are skipped silently.
+There is no options page, no context menu, no side panel and no manual "Beautify" button.
 
-### Popup
+### Automatic detection
 
-- **Settings** — indentation, theme, language, default view, and an
-  "Auto-beautify" master switch (default ON). This is a config toggle, not a
-  permission prompt: beautification works from install.
-- **Popular tools** — 6 links to real site tool pages, plus a prominent
-  "View all tools →" button. Links are locale-aware (`/zh/...` when the popup
-  language is 中文).
-- Privacy note + a link to the full toolbox.
+Detection is deliberately conservative and **silent**: on any ordinary page the content script exits with zero DOM changes.
 
-There is no standalone Options page, no context menu, and no manual "Beautify"
-button.
+- Protocols: `http:`, `https:`, `file:`. Local `.json` files need "Allow access to file URLs" enabled on the extension card — that is a Chrome safeguard and cannot be coded around.
+- Hosts `jsontoolbox.cc` and `www.jsontoolbox.cc` are excluded (exact match only; subdomains such as `resources.jsontoolbox.cc` are beautified normally).
+- `<body>` must contain **exactly one** content-bearing child and it must be a `<pre>`. `script/style/noscript/template/link/meta/base/iframe`, Chrome's own `.json-formatter-container` and empty childless mount points are ignored. The `<pre>` may contain `<span>` children (Chrome's built-in JSON viewer).
+- The text must start with `{` or `[`, parse as valid JSON, and be ≤ **2 MiB**.
+- Any visible text outside that `<pre>` rejects the page.
+
+### Viewer capabilities
+
+The viewer is a **local copy** of the site's JSON editor (`src/editor/`), vendored so plugin-only UX changes need no npm release.
+
+- CodeMirror 6 source editor + tree and split view; **editable** (not read-only), with node rename / type change / add / remove / move, bulk value set and 100-step undo/redo.
+- Table view for array roots (column show/hide, header sorting, CSV export). The view switcher is hidden for object / scalar roots.
+- Search by key, value, path, all or JSONPath: result drawer, cyclic prev/next, Enter / Shift+Enter, Esc, Ctrl/Cmd+F. 250 ms debounce, 5000-match / 400k-node caps, progressive 1500-row tree rendering.
+- Value insights: colors, timestamps, JWT, base64, image / audio / video / PDF URLs, plain URLs, email, UUID, IPv4, markdown and regex.
+- Image lightbox with counter, thumbnail strip, single / bulk download and keyboard navigation.
+- Copy (document / value / path / JSONPath), download, error line + column in the status bar, split-pane resize and scroll sync.
+- Raw / Tree toggle shows a `<pre>` inside the shell — the page's original `<pre>` stays untouched underneath the overlay.
+
+### Settings
+
+| Option | Values | Default |
+|---|---|---|
+| Theme | light / dark / auto (by local time) | auto |
+| Indentation | 2 / 4 / Tab | 2 |
+| Default view | editor / tree / both / table | both |
+| Language | English / 中文 | en |
+| Preview images & media | on / off | on |
+| Auto-beautify JSON pages | on / off | on |
+
+The last one is a config toggle, **not** a permission opt-in: beautification works from install. It is hidden inside the on-page overlay (turning it off there would destroy the overlay) and only shown in the last-preview tab. Changing a setting persists through `setOptions()` and both views react to `storage.onChanged` without a reload.
 
 ## Privacy & permissions
 
 | Item | Value |
 |---|---|
-| `permissions` | `['storage']` — only to save popup config locally |
-| `content_scripts.matches` | `['<all_urls>']` — required for automatic detection |
-| `host_permissions` | **not declared** (content scripts inject via `matches`) |
+| `permissions` | `['storage']` |
+| `content_scripts.matches` | `['<all_urls>', 'file:///*']`, `run_at: 'document_idle'` |
+| `host_permissions` | not declared |
+| Other manifest fields | `action: {}` (no popup), a service worker generated from `background.ts`, `default_locale: 'en'`, `homepage_url`, 4 icons, `minimum_chrome_version: '116'` |
 
-**Chrome will show "Read and change all your data on all websites" at install.**
-That warning comes from `content_scripts.matches: ['<all_urls>']` and is expected:
-Chrome offers no way to run a content script automatically based on a response's
-content type, so auto-detection requires this broad match. It was a deliberate,
-accepted tradeoff — note that no explicit `host_permissions` are requested.
+**Chrome will show "Read and change all your data on all websites" at install.** That comes from the content-script match patterns: Chrome has no API to inject based on a response's `Content-Type`, so automatic detection needs a broad match. It is an accepted tradeoff; no explicit host permissions are requested.
 
-What the code actually does is **local-only and read-only**: it reads the page's
-existing text, parses it in memory, and renders into a shadow root. There are
-**zero network requests** — no `fetch`, no `XMLHttpRequest`, no analytics, no
-remote scripts or fonts (Inter is bundled locally, the viewer's CSS is inlined).
-The only egress is a link the user clicks to open `jsontoolbox.cc`. `clipboardWrite`
-is not requested; the viewer's Copy button relies on the user-gesture Clipboard API
-with an `execCommand` fallback.
+What the code actually does:
 
-One narrow exception: with **image & media preview** enabled (the default), the
-viewer renders `<img>` / `<audio>` / `<video>` / `<iframe>` for values that look
-like image / audio / video / PDF URLs, which makes the browser fetch those assets
-from their own servers. Local `data:` / `base64` images are rendered inline with
-**no request**. Toggle "Preview images & media" in the popup to disable every
-third-party fetch.
+- Reads the page's existing `<pre>` text, parses it in memory and renders into a shadow root. No remote scripts, no remote fonts, no `eval` / `new Function`, no analytics, and no server of ours receives anything.
+- `browser.storage.local` holds two keys: `jsontb:options:v1` (the six settings) and `lastPreview` (`{ text, url, ts }` — the **actual JSON text** plus its source URL). Nothing is synced or uploaded; uninstalling the extension removes it.
+- With **Preview images & media** on (the default), URLs found inside the JSON are loaded by the browser as `<img>` / `<audio>` / `<video>` / `<iframe>`, and "Download all" calls `fetch(url)` on them. Those requests go to the servers hosting those URLs and can expose tokens embedded in the URL. Turn the switch off to disable every third-party request. Inline `data:` / base64 images never make a request.
+- All outbound links (`jsontoolbox.cc`, Ko-fi, the large-file viewer) open only on a user click. The QR images are bundled as data URIs.
 
-## Code reuse
+The store listing and privacy policy must describe the local storage and the media-preview requests; do **not** claim "zero network requests" or "data never leaves your device".
 
-The on-page viewer is a **local copy** of the site's editor source —
-`packages/json-editor/src/vue/JsonEditor.vue` and its siblings — vendored under
-`src/editor/`. It is copied, not consumed as a package: plugin-only UX changes
-(the single-row toolbar with the Split / Table switcher on the right, icon-only
-tree toggles, …) are made here and need no npm release. The main site and the
-published `@kbmjj123/json-editor` package are unaffected.
+## Architecture notes
 
-| Path | Used by |
-|---|---|
-| `src/editor/wc/defineJsonEditor.ts` | `utils/detectAndMount.ts` — mounts the editor imperatively into a nested shadow root. **Do not switch back to `<json-editor>` / `registerJsonEditor()`**: extension content scripts run in an isolated world where `customElements` is `null`, so a custom element can never be registered (it throws `Cannot read properties of null (reading 'get')`). |
-| `src/editor/editorCss.ts` | the inlined stylesheet (`styles/index.css?inline`) injected into that shadow root — components never write styles into the host page's `<head>` |
-| `src/editor/core/parse.ts` (`analyzeJson`) | the detection predicate in `entrypoints/content.ts` |
-
-Viewer-only hardening, following the same guardrails as the site's
-`useTreeSearch` (without importing its Nuxt composables): search is debounced by
-250 ms and capped at 400k visited nodes / 5000 matches; the flat tree renders
-1500 rows at a time and loads more on scroll. The tree's own toolbar is hidden —
-expand/collapse and the match count live in the single top toolbar, which is
-pinned with `flex: 0 0 auto` so the panes cannot squeeze its height. The toolbar
-also hosts a text Expand all / Collapse all button, a results drawer and
-prev/next navigation with the site's `TreeToolbar` semantics (cyclic next/prev,
-Enter / Shift+Enter, Esc to clear, flash on drawer jumps). Image values open a
-keyboard-navigable lightbox with a counter, download, thumb strip and arrow
-switching. The newer controls copy the site's `ToolPanelBar` / `TreeToolbar` /
-`Preview.vue` look as plain CSS with `--je-*` tokens (no Tailwind runtime in the
-content script). Extension-less image URLs are handled the site's way: every
-short http(s) value gets an `<img>` attempt that is hidden on load error.
-Value-insight thumbnails are line-height sized and never repeat the raw value
-already shown in the row; secondary actions (link / mail) are icon-only.
-
-The copied sources come from a project without WXT's `noUncheckedIndexedAccess`
-and `noImplicitOverride` defaults, so `tsconfig.json` disables those two checks
-for the extension.
-
-Design tokens are copied from the root `tailwind.config.js` into this package's
-Tailwind 3 config. The four PNGs in `public/` were generated once (via `sharp`)
-from the site's `public/web-app-manifest-512x512.png`.
-
-Two locale systems, both using `zh` (never `zh-CN`):
-
-- `i18n/{en,zh}.json` — popup UI (vue-i18n)
-- `public/_locales/{en,zh}/messages.json` — manifest strings (`__MSG_*__`) and
-  the viewer's three labels via `browser.i18n.getMessage`. These follow the
-  **browser UI language**, not the popup's language setting; the editor toolbar
-  itself is driven by the `locale` attribute from popup config.
+- `src/editor/wc/defineJsonEditor.ts` mounts the editor imperatively into a nested shadow root. **Do not switch back to `<json-editor>` / `registerJsonEditor()`**: content scripts run in an isolated world where `customElements` is `null`, so a custom element can never be registered.
+- `src/editor/editorCss.ts` injects the bundled stylesheet into that shadow root; components never write styles into the host page's `<head>`. `ViewerShell.css` / `ViewerSettings.css` are injected into whichever root the shell lives in.
+- `src/editor/core/parse.ts` (`analyzeJson`) is the detection predicate used by `entrypoints/content.ts`.
+- Viewer-only hardening: debounced/capped search, progressive flat-tree rendering, a hidden inner toolbar, `allowedViews` gated on an array root, and plain-CSS `--je-*` / `--v-*` tokens (no Tailwind runtime in the content script).
+- `tsconfig.json` disables `noUncheckedIndexedAccess` and `noImplicitOverride` because the copied editor sources predate WXT's stricter defaults.
+- Two independent locale systems: `public/_locales/{en,zh,zh_CN}/messages.json` drives manifest strings and `browser.i18n.getMessage` (follows the **browser UI language**; `zh_CN` is Chrome's standard Simplified Chinese code and the bare `zh` folder is kept for compatibility), while `src/editor/i18n/{en,zh}.ts` drives all viewer copy (follows the user's **Language** setting). There is no vue-i18n dependency.
+- The four PNGs in `public/` came from the site's 512×512 app icon. Images used inside the viewer are imported with `?inline` so they survive a strict host-page CSP.
 
 ## Development
 
-This is a standalone repository, so all scripts run from its own root:
+This is a standalone repository; scripts run from its own root.
 
-```bash
-pnpm install      # postinstall runs `wxt prepare`
-pnpm run compile  # vue-tsc --noEmit
-pnpm run dev      # HMR dev (-b chrome is already in the script)
-pnpm run build    # → .output/chrome-mv3/
-pnpm run zip      # → .output/*-chrome.zip
-```
+| Script | Purpose |
+|---|---|
+| `dev` | HMR dev build for Chrome (`wxt -b chrome`) |
+| `build` | produces `.output/chrome-mv3/` |
+| `zip` | produces the uploadable zip |
+| `compile` | `vue-tsc --noEmit` |
+| `postinstall` | `wxt prepare` |
 
-The viewer source is vendored under `src/editor/` — there is no library package
-to build or publish first. `wxt prepare` regenerates the literal
-`getMessage` keys from `_locales`, so re-run it after editing those files.
+Load the unpacked extension from `chrome://extensions` → Developer mode → `.output/chrome-mv3`. WXT regenerates the literal `getMessage` key types from `_locales` and the auto-import types from `utils/` / `composables/` during `prepare`, so regenerate them after editing locale files or adding/removing sources there. `.wxt/` is a generated directory and must not be edited by hand.
 
-This repository was split out of `jsontoolbox.cc/extension`. On first setup,
-generate and commit its own `pnpm-lock.yaml` — the CI workflow installs with
-`--frozen-lockfile` and cannot pass without it.
+`tailwind.config.js` / `postcss.config.cjs` are kept so Vite's autoprefixer step keeps working; no stylesheet uses Tailwind directives anymore and no Tailwind runtime is bundled.
 
-Load unpacked from `chrome://extensions` → Developer mode →
-`.output/chrome-mv3`.
+### Manual verification
 
-## Verification checklist
+1. Open a `.json` URL → overlay appears; the original `<pre>` is untouched underneath; the title bar shows ⚙, Raw/Tree, site and support links.
+2. Raw → text view; Tree → editor returns.
+3. `https://example.com`, a blog post with `<pre><code>{...}</code></pre>`, a GitHub blob → no overlay, no toast, no DOM change.
+4. `https://jsontoolbox.cc/...` unaffected; `https://resources.jsontoolbox.cc/orders-1mb.json` beautified.
+5. Change theme / indent / view / language in ⚙ → applies live without a reload.
+6. Turn auto-beautify off in the last-preview tab → the overlay is removed and the native `<pre>` shows again; on → re-mounts.
+7. Set Language = 中文 → viewer copy switches and the support link opens the QR modal.
+8. DevTools Network: no requests of our own; with media previews off, no third-party requests either.
 
-**Generated manifest** (`.output/chrome-mv3/manifest.json`):
+## Store listing
 
-- `permissions: ["storage"]` only; no `host_permissions`, no `background`, no
-  `options_ui`
-- `content_scripts[0]` = `matches: ["<all_urls>"]`, `js: ["content-scripts/content.js"]`,
-  `run_at: "document_idle"`
-- `action.default_popup: "popup.html"`, `default_locale: "en"`, 4 icons
-- The install warning **does** mention all websites (expected, see above)
-- No `beautify.js`, `background.js` or `options.html` in the output
+- Name and short description (≤132 chars) live in `public/_locales/{en,zh,zh_CN}/messages.json` (`extName` / `extDescription`) and are the source of `name` / `description` in the generated manifest. The detailed description, category (Developer Tools), privacy policy URL, permission justifications and promo assets are filled in the store dashboard.
+- Required assets: a 128×128 store icon (`public/icon-128.png`), at least one and up to five 1280×800 screenshots, and a 440×280 small promo tile. A 1400×560 marquee image and a demo video are optional.
+- `demo/object-showcase.json` and `demo/table-orders.json` are sample documents for screenshots and manual testing (object root for tree / search / value insights, array root for table / sorting / CSV export). They are **not** bundled into the extension.
 
-**Real browser** — automated end-to-end run with `puppeteer-core` + Chrome for
-Testing 148 against **both** `chrome-mv3` and `chrome-mv3-dev`: 12/12 checks
-pass (auto-mount, Vue editor actually rendered, raw/tree toggle both ways,
-ordinary page untouched, zero runtime errors). The manual checklist below is
-still worth running in your own Chrome profile, especially the locale and
-live-config items:
-
-1. Open a `.json` URL → tree overlay appears automatically, native `<pre>` hidden,
-   floating toggle + `jsontoolbox.cc` link + always-visible top-right "JSON Toolbox ↗"
-   link visible
-2. Toggle Raw → original `<pre>` restored with its text/styles intact; toggle Tree
-   → overlay returns; there is no permanent Close
-3. `https://example.com`, a blog post with `<pre><code>{...}</code></pre>`, a
-   GitHub blob view → no overlay, no toast, no DOM change
-4. `https://jsontoolbox.cc/tools/format/json-editor` → unaffected (self-exclusion);
-   `https://resources.jsontoolbox.cc/orders-1mb.json` → tree overlay appears (subdomains are not excluded)
-5. With a JSON page open, change popup indent / theme / view / language → applies
-   live without reload
-6. Turn "Auto-beautify" OFF → overlay + toggle removed and `<pre>` restored; ON →
-   re-mounts
-7. Set Language = 中文 → all 6 links + "View all tools" open `/zh/tools/...`
-8. Popup DevTools → Network: zero external requests; built output has no remote
-   `<script src>`, `eval` or `new Function`; no `[Vue warn]: injection … not found`
+`docs/popup-config-integration.md` is a historical design document from the removed-popup refactor and no longer describes the current code.
 
 ## Not in v1
 
-- Intercepting `fetch` / `XMLHttpRequest` JSON responses (needs MAIN-world
-  monkey-patching, brittle under MV3 CSP)
-- Code splitting for the content script (WXT builds content scripts as a single
-  IIFE, so Vue + CodeMirror are parsed on every page — DOM work still only
-  happens after detection passes)
-- Firefox / Safari builds, extra store locales (es / pt / id)
+- Intercepting `fetch` / `XMLHttpRequest` JSON responses (needs MAIN-world monkey-patching, brittle under MV3 CSP).
+- Code splitting for the content script (WXT builds content scripts as a single IIFE).
+- Firefox / Safari builds and additional store locales.
+- Known rough edges: editing in the last-preview tab writes to `storage.local` without a size cap or error handling; re-applying settings resets the editor to the text it was mounted with.

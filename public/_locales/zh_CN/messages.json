@@ -1,0 +1,22 @@
+{
+  "extName": {
+    "message": "JSON Toolbox",
+    "description": "商店与扩展管理页里显示的名称。"
+  },
+  "extDescription": {
+    "message": "自动把 JSON 页面变成可搜索、可编辑的树形与分栏视图；本地处理，无账号、无追踪。",
+    "description": "商店搜索结果中的简短描述，上限 132 字符；需与 zh/messages.json 保持一致。"
+  },
+  "viewerTitle": {
+    "message": "JSON Toolbox 查看器",
+    "description": "网页内 JSON 查看器的标题栏。"
+  },
+  "viewerRaw": {
+    "message": "原始",
+    "description": "树形模式下的切换按钮文字。"
+  },
+  "viewerTree": {
+    "message": "树形",
+    "description": "原始模式下的切换按钮文字。"
+  }
+}

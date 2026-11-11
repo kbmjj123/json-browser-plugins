@@ -1,5 +1,7 @@
 # 调整文档：将 Popup 配置能力融入预览视图
 
+> ⚠️ **历史文档，已过时。** 本文写于移除 action popup 的设计评审阶段（原文即注明「本阶段只做设计与评审，不编码」）。当前实现已走整体 Vue 化路径：两个视图共用 `src/components/ViewerShell.vue` + `ViewerSettings.vue`，配置统一走 `utils/options.ts`；文中提到的 `entrypoints/popup/`、`ViewerPage.vue`、`src/utils/support.ts` 以及 §2「现状」均已不成立。请以 `README.md` 与源码为准，保留本文仅作重构决策记录。
+
 > 目标：移除 action popup 后（popup 与 `action.onClicked` 互斥，必须去掉才能点击图标直接开新标签页），把原 popup 里的**配置能力**融入两个既有的预览视图中——网页内 overlay（content 注入的全屏浮层）与 `lastPreview` 独立标签页页面。本阶段只做设计与评审，不编码。
 
 ---

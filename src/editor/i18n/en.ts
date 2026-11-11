@@ -117,7 +117,7 @@ export const en = {
   image_preview: 'Image previews',
   language: 'Language',
   auto_beautify: 'Auto-beautify pages',
-  privacy: 'This extension collects no data. All settings are stored locally on your device.',
+  privacy: 'No data is uploaded. Settings and the last preview are stored only on this device; media previews may load URLs found in your JSON.',
   visit_site: 'Visit jsontoolbox.cc',
 } as const
 

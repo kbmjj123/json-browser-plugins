@@ -1,6 +1,7 @@
 // Typed options persisted in browser.storage.local.
-// Read by the popup AND the content script, so it must stay free of Vue and of
-// any module-scope browser.* calls (WXT imports JS entrypoints in Node at build).
+// Read by the content script AND the last-preview page, so it must stay free of
+// Vue and of any module-scope browser.* calls (WXT imports JS entrypoints in
+// Node at build).
 import { browser } from 'wxt/browser'
 
 export type IndentOption = 2 | 4 | 'tab'
@@ -61,11 +62,4 @@ export function resolveDark(theme: ThemeOption): boolean {
   if (theme === 'light') return false
   const hour = new Date().getHours()
   return hour < 6 || hour >= 18
-}
-
-/** Apply `.dark` on <html>. Used by the popup on mount / change. */
-export function applyTheme(theme: ThemeOption): void {
-  const dark = resolveDark(theme)
-  document.documentElement.classList.toggle('dark', dark)
-  document.documentElement.style.colorScheme = dark ? 'dark' : 'light'
 }

@@ -1,0 +1,68 @@
+{
+  "project": "JSON Toolbox",
+  "tagline": "Turn raw JSON into something you can actually read",
+  "version": "1.0.0",
+  "active": true,
+  "score": 98.6,
+  "notes": null,
+  "updatedAt": "2026-11-12T09:30:00Z",
+  "createdAt": 1735689600,
+  "processedAt": 1762940000000,
+  "brand": {
+    "primary": "#0052D4",
+    "accent": "rgb(245, 158, 11)",
+    "muted": "hsl(210, 40%, 60%)"
+  },
+  "owner": {
+    "id": "9f1d3b7c-2a4e-4c8b-9d6f-0a1b2c3d4e5f",
+    "name": "Demo User",
+    "email": "hello@jsontoolbox.cc",
+    "lastLoginIp": "192.168.1.42",
+    "profile": "https://jsontoolbox.cc/tools"
+  },
+  "auth": {
+    "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c",
+    "encodedGreeting": "SGVsbG8sIEpTT04gVG9vbGJveCE=",
+    "inlineLogo": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='80'%3E%3Crect width='160' height='80' rx='12' fill='%230052D4'/%3E%3Ctext x='80' y='48' fill='white' font-family='sans-serif' font-size='22' text-anchor='middle'%3E%7B %7D%3C/text%3E%3C/svg%3E"
+  },
+  "readme": "## Quick start\n\n**Format**, inspect and edit JSON right in the browser.\n\n- Tree view\n- Table view\n- Search",
+  "validation": {
+    "datePattern": "/^\\d{4}-\\d{2}-\\d{2}$/g",
+    "emailPattern": "/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/i"
+  },
+  "media": {
+    "photos": [
+      "https://picsum.photos/seed/json-toolbox-a/640/360.jpg",
+      "https://picsum.photos/seed/json-toolbox-b/640/360.jpg",
+      "https://picsum.photos/seed/json-toolbox-c/640/360.jpg"
+    ],
+    "audioSample": "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3",
+    "videoSample": "https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4",
+    "report": "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf"
+  },
+  "links": {
+    "homepage": "https://jsontoolbox.cc",
+    "source": "https://github.com/kbmjj123/json-browser-plugins",
+    "tools": "https://jsontoolbox.cc/tools"
+  },
+  "servers": [
+    { "region": "us-east-1", "ip": "10.0.0.12", "healthy": true, "latencyMs": 24 },
+    { "region": "eu-west-1", "ip": "10.0.1.34", "healthy": true, "latencyMs": 87 },
+    { "region": "ap-southeast-1", "ip": "10.0.2.56", "healthy": false, "latencyMs": 143 }
+  ],
+  "features": [
+    "Auto-beautify JSON pages",
+    "Raw / Tree toggle",
+    "JSONPath search",
+    "Table view & CSV export",
+    "Value insights",
+    "Light & dark theme"
+  ],
+  "stats": {
+    "supportedKinds": 14,
+    "maxAutoBytes": 2097152,
+    "searchMatchCap": 5000,
+    "treeNodeCap": 400000,
+    "undoSteps": 100
+  }
+}
