@@ -124,18 +124,18 @@ export function detectAndMount(
   function editorOptions(next: ExtensionOptions): JsonEditorOptions {
     return {
       value: doc.text,
-      view: next.view,
+      view: 'both',
       theme: resolveDark(next.theme) ? 'dark' : 'light',
       locale: next.locale,
       indent: next.indent,
-      readOnly: true,
+      readOnly: false,
       height: '100%',
       attribution: false,
       imagePreview: next.imagePreview,
       // Plugin-only UX: split-first, a single toolbar row with the view
       // switcher on the right, chevron expand toggles, bare image values, and
       // synced split-pane scrolling.
-      allowedViews: ['both', 'table'],
+      allowedViews: [],
       searchInToolbar: true,
       bareImage: true,
       linkScroll: true,

@@ -483,11 +483,19 @@ function setupScrollSync() {
   scrollCleanup?.()
   scrollCleanup = null
   if (!props.linkScroll || view.value !== 'both') return
-  nextTick(() => {
+  let tries = 0
+  const tryBind = () => {
     const body = bodyRef.value
     if (!body) return
     const left = body.querySelector<HTMLElement>('.je-editor .cm-scroller')
     const right = body.querySelector<HTMLElement>('.je-tree')
+    // CodeMirror (and the tree) may not be mounted yet in the injected shadow
+    // world — retry on the next frame instead of silently giving up.
+    if ((!left || !right) && tries < 30) {
+      tries++
+      requestAnimationFrame(tryBind)
+      return
+    }
     if (!left || !right) return
     let syncing = false
     const onLeft = () => {
@@ -508,7 +516,8 @@ function setupScrollSync() {
       left.removeEventListener('scroll', onLeft)
       right.removeEventListener('scroll', onRight)
     }
-  })
+  }
+  nextTick(tryBind)
 }
 watch([view, () => props.linkScroll], setupScrollSync)
 onMounted(setupScrollSync)
