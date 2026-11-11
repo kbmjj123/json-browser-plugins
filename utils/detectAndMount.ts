@@ -2,9 +2,13 @@
 // with an always-available 原始 / 树形 (raw / tree) toggle.
 //
 // Content scripts run in an isolated world where `customElements` is null, so
-// the <json-editor> custom element CANNOT be registered here. Use /wc's
-// imperative `defineJsonEditor()` instead and inject its inlined CSS ourselves.
-import { defineJsonEditor, editorCss, type JsonEditorInstance, type JsonEditorOptions } from '@kbmjj123/json-editor/wc'
+// the <json-editor> custom element CANNOT be registered here. Use the copied
+// editor's imperative `defineJsonEditor()` instead and inject its inlined CSS
+// ourselves. `src/editor/` is a local copy of the site's
+// `packages/json-editor/src/` (JsonEditor.vue and siblings), so plugin-only UX
+// changes never require publishing a new npm version.
+import { defineJsonEditor, type JsonEditorInstance, type JsonEditorOptions } from '../src/editor/wc/defineJsonEditor'
+import { editorCss } from '../src/editor/editorCss'
 import { resolveDark, type ExtensionOptions } from './options'
 import { SITE_URL } from './constants'
 
@@ -132,11 +136,11 @@ export function detectAndMount(
       height: '100%',
       attribution: false,
       imagePreview: next.imagePreview,
-      // Plugin-only UX: split-first, search in top bar, text expand toggles,
-      // bare image values, and synced split-pane scrolling.
+      // Plugin-only UX: split-first, a single toolbar row with the view
+      // switcher on the right, chevron expand toggles, bare image values, and
+      // synced split-pane scrolling.
       allowedViews: ['both', 'table'],
       searchInToolbar: true,
-      expandLabels: true,
       bareImage: true,
       linkScroll: true,
     }

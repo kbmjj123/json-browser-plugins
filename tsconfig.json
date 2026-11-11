@@ -3,7 +3,9 @@
   "compilerOptions": {
     "noEmit": true,
     "strict": true,
-    "verbatimModuleSyntax": true
+    "verbatimModuleSyntax": true,
+    "noUncheckedIndexedAccess": false,
+    "noImplicitOverride": false
   },
   "include": ["**/*.ts", "**/*.vue", ".wxt/**/*"],
   "exclude": ["node_modules", ".output"]

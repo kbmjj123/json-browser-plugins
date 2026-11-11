@@ -4,6 +4,6 @@ import i18n from '../../i18n'
 import '../../assets/tailwind.css'
 import './style.css'
 
-// No @kbmjj123/json-editor/style.css import: the popup no longer hosts a
-// JsonEditor. The editor only lives in the content script's /wc element.
+// No editor stylesheet import here: the popup hosts no JSON editor. The viewer
+// lives in the content script and inlines its CSS into a shadow root.
 createApp(App).use(i18n).mount('#app')

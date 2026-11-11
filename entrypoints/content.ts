@@ -1,6 +1,6 @@
 import { browser } from 'wxt/browser'
 import { defineContentScript } from 'wxt/utils/define-content-script'
-import { analyzeJson } from '@kbmjj123/json-editor/core'
+import { analyzeJson } from '../src/editor/core/parse'
 import { detectAndMount, type JsonDocument, type ViewerController, type ViewerLabels } from '../utils/detectAndMount'
 import { getOptions, STORAGE_KEY, type ExtensionOptions } from '../utils/options'
 import { MAX_AUTO_JSON_BYTES, OWN_HOSTS } from '../utils/constants'

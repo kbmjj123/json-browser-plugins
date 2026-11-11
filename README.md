@@ -82,15 +82,22 @@ third-party fetch.
 
 ## Code reuse
 
-This package consumes the published `@kbmjj123/json-editor` from npm
-(`^0.1.1`), the same version the main site uses. Changing the library's source
-now requires publishing a new version and bumping this dependency — there is no
-local `dist/` rebuild step any more:
+The on-page viewer is a **local copy** of the site's editor source —
+`packages/json-editor/src/vue/JsonEditor.vue` and its siblings — vendored under
+`src/editor/`. It is copied, not consumed as a package: plugin-only UX changes
+(the single-row toolbar with the Split / Table switcher on the right, icon-only
+tree toggles, …) are made here and need no npm release. The main site and the
+published `@kbmjj123/json-editor` package are unaffected.
 
-| Subpath | Used by |
+| Path | Used by |
 |---|---|
-| `/wc` (`defineJsonEditor`, `editorCss`) | `entrypoints/content.ts` — mounts the editor imperatively into a nested shadow root. **Do not switch back to `<json-editor>` / `registerJsonEditor()`**: extension content scripts run in an isolated world where `customElements` is `null`, so a custom element can never be registered (it throws `Cannot read properties of null (reading 'get')`). `editorCss` is the inlined stylesheet injected into that shadow root. |
-| `/core` (`analyzeJson`) | the detection predicate in `entrypoints/content.ts` |
+| `src/editor/wc/defineJsonEditor.ts` | `utils/detectAndMount.ts` — mounts the editor imperatively into a nested shadow root. **Do not switch back to `<json-editor>` / `registerJsonEditor()`**: extension content scripts run in an isolated world where `customElements` is `null`, so a custom element can never be registered (it throws `Cannot read properties of null (reading 'get')`). |
+| `src/editor/editorCss.ts` | the inlined stylesheet (`styles/index.css?inline`) injected into that shadow root — components never write styles into the host page's `<head>` |
+| `src/editor/core/parse.ts` (`analyzeJson`) | the detection predicate in `entrypoints/content.ts` |
+
+The copied sources come from a project without WXT's `noUncheckedIndexedAccess`
+and `noImplicitOverride` defaults, so `tsconfig.json` disables those two checks
+for the extension.
 
 Design tokens are copied from the root `tailwind.config.js` into this package's
 Tailwind 3 config. The four PNGs in `public/` were generated once (via `sharp`)
@@ -116,8 +123,8 @@ pnpm run build    # → .output/chrome-mv3/
 pnpm run zip      # → .output/*-chrome.zip
 ```
 
-`@kbmjj123/json-editor` is a published npm dependency (`^0.1.1`) — there is no
-workspace package to build first. `wxt prepare` regenerates the literal
+The viewer source is vendored under `src/editor/` — there is no library package
+to build or publish first. `wxt prepare` regenerates the literal
 `getMessage` keys from `_locales`, so re-run it after editing those files.
 
 This repository was split out of `jsontoolbox.cc/extension`. On first setup,
