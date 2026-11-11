@@ -95,6 +95,23 @@ published `@kbmjj123/json-editor` package are unaffected.
 | `src/editor/editorCss.ts` | the inlined stylesheet (`styles/index.css?inline`) injected into that shadow root — components never write styles into the host page's `<head>` |
 | `src/editor/core/parse.ts` (`analyzeJson`) | the detection predicate in `entrypoints/content.ts` |
 
+Viewer-only hardening, following the same guardrails as the site's
+`useTreeSearch` (without importing its Nuxt composables): search is debounced by
+250 ms and capped at 400k visited nodes / 5000 matches; the flat tree renders
+1500 rows at a time and loads more on scroll. The tree's own toolbar is hidden —
+expand/collapse and the match count live in the single top toolbar, which is
+pinned with `flex: 0 0 auto` so the panes cannot squeeze its height. The toolbar
+also hosts a text Expand all / Collapse all button, a results drawer and
+prev/next navigation with the site's `TreeToolbar` semantics (cyclic next/prev,
+Enter / Shift+Enter, Esc to clear, flash on drawer jumps). Image values open a
+keyboard-navigable lightbox with a counter, download, thumb strip and arrow
+switching. The newer controls copy the site's `ToolPanelBar` / `TreeToolbar` /
+`Preview.vue` look as plain CSS with `--je-*` tokens (no Tailwind runtime in the
+content script). Extension-less image URLs are handled the site's way: every
+short http(s) value gets an `<img>` attempt that is hidden on load error.
+Value-insight thumbnails are line-height sized and never repeat the raw value
+already shown in the row; secondary actions (link / mail) are icon-only.
+
 The copied sources come from a project without WXT's `noUncheckedIndexedAccess`
 and `noImplicitOverride` defaults, so `tsconfig.json` disables those two checks
 for the extension.

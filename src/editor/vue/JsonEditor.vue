@@ -4,30 +4,31 @@
     :class="{ 'je-dark': isDark, 'je-flat': !bordered }"
     :style="{ height: resolvedHeight }"
   >
-    <template v-if="searchInToolbar">
-      <!-- Plugin-only layout: every control lives in ONE row, with the
-           Split / Table view switcher pinned to the far right. -->
-      <div class="je-toolbar je-toolbar-single">
-        <button
-          type="button"
-          class="je-btn"
-          :disabled="readOnly || !hasContent"
-          :title="t('format')"
-          @click="onFormat"
-        >
-          <span v-html="icons.alignLeft" />
-          <span>{{ t('format') }}</span>
-        </button>
-        <button
-          type="button"
-          class="je-btn"
-          :disabled="readOnly || !hasContent"
-          :title="t('minify')"
-          @click="onMinify"
-        >
-          <span v-html="icons.minimize" />
-          <span>{{ t('minify') }}</span>
-        </button>
+    <!-- Large-file guard: mirror the main site's 5 MiB rule. Browsing a huge
+         document in the plugin can freeze the tab, so we link to the site's
+         dedicated Large JSON Explorer instead of parsing it on the main thread. -->
+    <div v-if="isLargeFile && !largeDismissed" class="je-large-file-warn">
+      <span class="je-large-file-ico" v-html="icons.alert" />
+      <span class="je-large-file-text">{{ t('largeFileWarning', { size: largeFileSize }) }}</span>
+      <button type="button" class="je-btn je-btn-sm je-large-file-go" @click="openLargeFileViewer">
+        {{ t('largeFileOpen') }}
+      </button>
+      <button
+        type="button"
+        class="je-large-file-x"
+        :title="t('largeFileDismiss')"
+        :aria-label="t('largeFileDismiss')"
+        @click="largeDismissed = true"
+      >
+        <span v-html="icons.x" />
+      </button>
+    </div>
+
+    <!-- Single unified toolbar: copy, search, view switch and expand/collapse
+         all live here, so the tree pane never renders a second (duplicate)
+         toolbar. It never wraps — narrow viewports scroll instead of dropping
+         the view switcher onto a second row. -->
+    <div class="je-toolbar je-toolbar-main">
         <button type="button" class="je-btn" :title="t('copy')" @click="onCopy">
           <span v-html="copied ? icons.check : icons.copy" />
           <span>{{ copied ? t('copied') : t('copy') }}</span>
@@ -35,30 +36,75 @@
 
         <span class="je-sep" />
 
-        <select v-model="indentValue" class="je-select" :aria-label="t('format')">
-          <option :value="2">2</option>
-          <option :value="4">4</option>
-          <option value="tab">Tab</option>
-        </select>
-
-        <span class="je-toolbar-spacer" />
-
         <span class="je-search">
           <span v-html="icons.search" />
           <input
             v-model="searchQuery"
+            class="je-site-input"
             type="search"
             :placeholder="t('search_placeholder')"
             :aria-label="t('search')"
+            @keydown.enter.prevent="onSearchEnter"
+            @keydown.esc="clearSearch"
           />
         </span>
-        <select v-model="searchMode" class="je-mode" :aria-label="t('search_mode')">
+        <select v-model="searchMode" class="je-mode je-site-select" :aria-label="t('search_mode')">
           <option value="key">{{ t('mode_key') }}</option>
           <option value="value">{{ t('mode_value') }}</option>
           <option value="path">{{ t('mode_path') }}</option>
           <option value="all">{{ t('mode_all') }}</option>
           <option value="jsonpath">{{ t('mode_jsonpath') }}</option>
         </select>
+
+        <span v-if="searchResultLabel" class="je-count" :class="{ 'is-error': searchResult.invalid }">
+          {{ searchResultLabel }}
+        </span>
+
+        <template v-if="searchActive">
+          <button
+            type="button"
+            class="je-btn je-btn-icon je-site-icon"
+            :class="{ 'je-btn-active': showResults }"
+            :disabled="!searchResult.rows.length"
+            :title="t('results')"
+            :aria-label="t('results')"
+            @click="showResults = !showResults"
+          >
+            <span v-html="icons.list" />
+          </button>
+          <button
+            type="button"
+            class="je-btn je-btn-icon je-site-icon"
+            :disabled="!searchResult.rows.length"
+            :title="t('previous_match')"
+            :aria-label="t('previous_match')"
+            @click="onPrevMatch"
+          >
+            <span v-html="icons.chevronUp" />
+          </button>
+          <button
+            type="button"
+            class="je-btn je-btn-icon je-site-icon"
+            :disabled="!searchResult.rows.length"
+            :title="t('next_match')"
+            :aria-label="t('next_match')"
+            @click="onNextMatch"
+          >
+            <span v-html="icons.chevronDown" />
+          </button>
+        </template>
+
+        <span class="je-toolbar-spacer" />
+
+        <button
+          type="button"
+          class="je-btn je-btn-icon"
+          :disabled="view === 'table'"
+          :title="allExpanded ? t('collapse_all') : t('expand_all')"
+          @click="onToggleAll"
+        >
+          <span v-html="allExpanded ? icons.collapse : icons.expand" />
+        </button>
 
         <span class="je-sep" />
 
@@ -73,62 +119,41 @@
           >{{ t(option) }}</button>
         </div>
       </div>
-    </template>
 
-    <div v-else class="je-toolbar">
-      <button
-        type="button"
-        class="je-btn"
-        :disabled="readOnly || !hasContent"
-        :title="t('format')"
-        @click="onFormat"
-      >
-        <span v-html="icons.alignLeft" />
-        <span>{{ t('format') }}</span>
-      </button>
-      <button
-        type="button"
-        class="je-btn"
-        :disabled="readOnly || !hasContent"
-        :title="t('minify')"
-        @click="onMinify"
-      >
-        <span v-html="icons.minimize" />
-        <span>{{ t('minify') }}</span>
-      </button>
-      <button type="button" class="je-btn" :title="t('copy')" @click="onCopy">
-        <span v-html="copied ? icons.check : icons.copy" />
-        <span>{{ copied ? t('copied') : t('copy') }}</span>
-      </button>
-
-      <span class="je-sep" />
-
-      <select v-model="indentValue" class="je-select" :aria-label="t('format')">
-        <option :value="2">2</option>
-        <option :value="4">4</option>
-        <option value="tab">Tab</option>
-      </select>
-
-      <span class="je-toolbar-spacer" />
-
-      <div class="je-sep" />
-      <button
-        v-for="option in allowedViewOptions"
-        :key="option"
-        type="button"
-        class="je-btn"
-        :class="{ 'je-btn-active': view === option }"
-        @click="view = option"
-      >
-        {{ t(option) }}
-      </button>
-    </div>
+      <!-- Outside the toolbar: `overflow-y: hidden` on the single row would
+           otherwise clip the floating drawer. -->
+      <div v-if="showResults && searchActive && searchResult.rows.length" class="je-results">
+        <div class="je-results-head">
+          <span>{{ t('results') }} · {{ t('matches', { n: searchResult.truncated ? `${searchResult.total}+` : searchResult.total }) }}</span>
+          <button type="button" class="je-btn je-btn-icon je-site-icon" :title="t('close')" :aria-label="t('close')" @click="showResults = false">
+            <span v-html="icons.x" />
+          </button>
+        </div>
+        <div class="je-results-list">
+          <button
+            v-for="(row, i) in searchResult.rows"
+            :key="row.path"
+            type="button"
+            class="je-result"
+            :class="{ 'is-current': i === searchResult.currentIndex }"
+            @click="onJump(row, i)"
+          >
+            <span class="je-result-main">
+              <span class="je-result-snippet">{{ row.snippet }}</span>
+              <span v-if="row.kind" class="je-result-badge">{{ row.kind }}</span>
+              <span v-if="row.type" class="je-result-badge">{{ row.type }}</span>
+            </span>
+            <span class="je-result-path">{{ row.path }}</span>
+          </button>
+        </div>
+      </div>
 
     <div class="je-body" ref="bodyRef">
       <CodeEditor
         v-if="view === 'editor' || view === 'both'"
         ref="editorRef"
         v-model="text"
+        :style="splitStyle"
         :read-only="readOnly"
         :placeholder="placeholder"
         :indent="indentValue"
@@ -137,10 +162,21 @@
         :messages="resolvedMessages"
         :bordered="false"
         :show-status="false"
+        :hover-line="hoverLine"
         @oversized-paste="onOversizedPaste"
+        @hover-line="onHoverLine"
+        @copied="onEditorCopied"
+      />
+      <div
+        v-if="view === 'both'"
+        class="je-splitter"
+        role="separator"
+        aria-orientation="vertical"
+        @mousedown="onSplitDragStart"
       />
       <TreeView
         v-if="view === 'tree' || view === 'both'"
+        ref="treeRef"
         class="je-pane"
         v-model:text="text"
         :locale="resolvedLocale"
@@ -150,8 +186,14 @@
         :on-notify="onNotify"
         :image-preview="imagePreview"
         :bare-image="bareImage"
-        :search-query="searchInToolbar ? searchQuery : undefined"
-        :search-mode="searchInToolbar ? searchMode : undefined"
+        :show-toolbar="false"
+        :search-query="searchQuery"
+        :search-mode="searchMode"
+        :hovered-path="hoveredPath"
+        @search-result="searchResult = $event"
+        @update:all-expanded="allExpanded = $event"
+        @hover-path="hoveredPath = $event"
+        @copied="onTreeCopied"
         @select="onSelect"
       />
       <TableView
@@ -180,8 +222,17 @@
       <span class="je-status-right">{{ t('chars', { n: text.length }) }}</span>
     </div>
 
-    <div v-if="attribution" class="je-attribution">
-      <a :href="attributionUrl" target="_blank" rel="noopener">{{ t('attribution', { name: 'jsontoolbox.cc' }) }}</a>
+    <div v-if="attribution || supportUrl" class="je-footer">
+      <a v-if="attribution" :href="attributionUrl" target="_blank" rel="noopener">{{ t('attribution', { name: 'jsontoolbox.cc' }) }}</a>
+      <span v-if="attribution && supportUrl" class="je-footer-sep">·</span>
+      <a v-if="supportUrl" :href="supportUrl" target="_blank" rel="noopener me nofollow">
+        <span v-html="icons.coffee" /> {{ t('support') }}
+      </a>
+    </div>
+
+    <div v-if="showCopiedToast" class="je-toast" role="status" aria-live="polite">
+      <span v-html="icons.check" />
+      <span>{{ t('copied') }}</span>
     </div>
   </div>
 </template>
@@ -197,8 +248,10 @@ import { icons } from './icons'
 import { copyText } from './clipboard'
 import { createTranslator, type Locale, type Messages } from '../i18n'
 import { analyzeJson, parseJson, type ErrorLocation } from '../core/parse'
+import { LARGE_FILE_MAX_BYTES, byteLength, formatBytes, LARGE_FILE_VIEWER_URL } from '../core/largeFile'
 import type { IndentOption } from '../core/format'
-import type { TreeSearchMode } from '../core/tree'
+import { buildSourceMap } from '../core/sourceMap'
+import type { TreeSearchMode, SearchRow, SearchSummary } from '../core/tree'
 // The extension inlines `editorCss` into its own shadow root instead of
 // injecting styles into the host page's <head>.
 
@@ -237,8 +290,10 @@ const props = withDefaults(
     searchInToolbar?: boolean
     /** Sync the scroll position between the editor and tree panes in Split view. */
     linkScroll?: boolean
+    /** Ko-fi (or any "support the project") URL shown in the footer. Empty string hides it. */
+    koFiUrl?: string
   }>(),
-  { bordered: true, showStatus: true, searchInToolbar: false, bareImage: false, linkScroll: false }
+  { bordered: true, showStatus: true, searchInToolbar: false, bareImage: false, linkScroll: false, koFiUrl: 'https://ko-fi.com' }
 )
 
 // Resolution order for every optional prop: explicit prop → plugin defaults
@@ -251,11 +306,23 @@ const resolvedMessages = computed(() => props.messages ?? pluginOptions?.message
 const resolvedHeight = computed(() => props.height ?? pluginOptions?.height ?? '420px')
 const readOnly = computed(() => props.readOnly ?? false)
 const maxBytes = computed(() => props.maxBytes ?? 0)
+
+// Mirror the main site's 5 MiB rule: above this, browsing in the plugin can
+// freeze the tab, so we surface a banner that links to the site's dedicated
+// Large JSON Explorer instead of parsing the document on the main thread.
+const docBytes = computed(() => byteLength(text.value ?? ''))
+const isLargeFile = computed(() => docBytes.value > LARGE_FILE_MAX_BYTES)
+const largeFileSize = computed(() => formatBytes(docBytes.value))
+const largeDismissed = ref(false)
+function openLargeFileViewer() {
+  window.open(LARGE_FILE_VIEWER_URL, '_blank', 'noopener')
+}
 const placeholder = computed(() => props.placeholder ?? '')
 const bordered = computed(() => props.bordered)
 const showStatus = computed(() => props.showStatus)
 const attribution = computed(() => props.attribution ?? false)
 const attributionUrl = computed(() => props.attributionUrl ?? 'https://jsontoolbox.cc')
+const supportUrl = computed(() => props.koFiUrl ?? '')
 
 const emit = defineEmits<{
   'update:modelValue': [value: string]
@@ -283,6 +350,55 @@ watch(
 )
 watch(view, (value) => emit('update:view', value))
 
+// ── Tree ↔ source hover linking (only meaningful in Split view) ────────────
+// `buildSourceMap` scans the current text (what CodeEditor actually shows) and
+// maps each tree path to its 1-based source line, so hovering one pane can
+// highlight the matching row in the other. The reverse lookup keeps a sorted
+// line array for O(log n) binary search on large documents.
+const sourceMap = computed<Map<string, number>>(() => {
+  if (view.value !== 'both') return new Map()
+  try {
+    return buildSourceMap(text.value ?? '')
+  } catch {
+    return new Map()
+  }
+})
+const sourceLines = computed<{ line: number; path: string }[]>(() => {
+  const arr = [...sourceMap.value.entries()].map(([path, line]) => ({ line, path }))
+  arr.sort((a, b) => a.line - b.line)
+  return arr
+})
+const hoveredPath = ref<string | null>(null)
+const hoverLine = computed<number | null>(() => {
+  const p = hoveredPath.value
+  if (!p) return null
+  const l = sourceMap.value.get(p)
+  return l != null ? l : null
+})
+function lineToPath(line: number): string | null {
+  const arr = sourceLines.value
+  let lo = 0
+  let hi = arr.length - 1
+  let ans = -1
+  while (lo <= hi) {
+    const mid = (lo + hi) >> 1
+    if (arr[mid].line <= line) {
+      ans = mid
+      lo = mid + 1
+    } else {
+      hi = mid - 1
+    }
+  }
+  return ans >= 0 ? arr[ans].path : null
+}
+function onHoverLine(line: number | null) {
+  hoveredPath.value = line == null ? null : lineToPath(line)
+}
+// Leaving Split view drops any stale highlight.
+watch(view, (v) => {
+  if (v !== 'both') hoveredPath.value = null
+})
+
 const indentValue = ref<IndentOption>(resolvedIndent.value)
 watch(resolvedIndent, (value) => {
   indentValue.value = value
@@ -298,6 +414,48 @@ const allowedViewOptions = computed<JsonEditorView[]>(
 )
 const searchQuery = ref('')
 const searchMode = ref<TreeSearchMode>('key')
+
+// Tree state is mirrored up here because the plugin renders the tree's
+// expand/collapse control, match count and search navigation in one toolbar.
+const treeRef = ref<InstanceType<typeof TreeView> | null>(null)
+const allExpanded = ref(false)
+const searchResult = ref<SearchSummary>({
+  total: 0, invalid: false, truncated: false, currentIndex: -1, rows: [],
+})
+const showResults = ref(false)
+const searchActive = computed(
+  () => view.value !== 'table' && searchQuery.value.trim().length > 0
+)
+watch(searchQuery, (value) => { if (!value.trim()) showResults.value = false })
+
+const searchResultLabel = computed(() => {
+  if (!searchActive.value) return ''
+  if (searchResult.value.invalid) return t.value('invalid_expression')
+  if (!searchResult.value.rows.length) return t.value('no_matches')
+  const position = `${searchResult.value.currentIndex + 1}/${searchResult.value.total}`
+  return searchResult.value.truncated ? `${position}+` : position
+})
+function onToggleAll() {
+  treeRef.value?.toggleAll()
+}
+function onNextMatch() {
+  treeRef.value?.nextMatch()
+}
+function onPrevMatch() {
+  treeRef.value?.prevMatch()
+}
+function onJump(row: SearchRow, index: number) {
+  treeRef.value?.jumpTo(row.path, index)
+  showResults.value = false
+}
+function onSearchEnter(e: KeyboardEvent) {
+  if (e.shiftKey) onPrevMatch()
+  else onNextMatch()
+}
+function clearSearch() {
+  searchQuery.value = ''
+  showResults.value = false
+}
 
 // ── Split-view scroll sync (opt-in via `linkScroll`) ──────────────────────────
 let scrollCleanup: (() => void) | null = null
@@ -391,10 +549,64 @@ function onMinify() {
 const copied = ref(false)
 let copiedTimer: ReturnType<typeof setTimeout> | null = null
 
+// Lightweight toast for copy actions (selection copy in the editor + the Copy
+// button). Independent of the host-supplied `onNotify`, so the feedback always
+// shows even when the host does not provide a notification channel.
+const showCopiedToast = ref(false)
+let copiedToastTimer: ReturnType<typeof setTimeout> | null = null
+function flashCopiedToast() {
+  showCopiedToast.value = true
+  if (copiedToastTimer) clearTimeout(copiedToastTimer)
+  copiedToastTimer = setTimeout(() => {
+    showCopiedToast.value = false
+  }, 1600)
+}
+function onEditorCopied(_text: string) {
+  flashCopiedToast()
+}
+
+// ── Split-view draggable divider ───────────────────────────────────────────
+const splitRatio = ref(0.5)
+const splitStyle = computed(() =>
+  view.value === 'both' ? { flex: `0 0 ${(splitRatio.value * 100).toFixed(2)}%` } : undefined
+)
+let splitDragging = false
+function onSplitDragStart(e: MouseEvent) {
+  if (view.value !== 'both') return
+  splitDragging = true
+  bodyRef.value?.classList.add('is-splitting')
+  window.addEventListener('mousemove', onSplitDragMove)
+  window.addEventListener('mouseup', onSplitDragEnd)
+  e.preventDefault()
+}
+function onSplitDragMove(e: MouseEvent) {
+  if (!splitDragging) return
+  const body = bodyRef.value
+  if (!body) return
+  const rect = body.getBoundingClientRect()
+  const dividerW = 6
+  let ratio = (e.clientX - rect.left) / (rect.width - dividerW)
+  ratio = Math.min(0.8, Math.max(0.2, ratio))
+  splitRatio.value = ratio
+}
+function onSplitDragEnd() {
+  if (!splitDragging) return
+  splitDragging = false
+  bodyRef.value?.classList.remove('is-splitting')
+  window.removeEventListener('mousemove', onSplitDragMove)
+  window.removeEventListener('mouseup', onSplitDragEnd)
+}
+onBeforeUnmount(onSplitDragEnd)
+
+function onTreeCopied(_info: { kind: 'path' | 'jsonPath' | 'value'; text: string }) {
+  flashCopiedToast()
+}
+
 async function onCopy() {
   const ok = await copyText(text.value)
   if (!ok) return
   copied.value = true
+  flashCopiedToast()
   if (copiedTimer) clearTimeout(copiedTimer)
   copiedTimer = setTimeout(() => {
     copied.value = false

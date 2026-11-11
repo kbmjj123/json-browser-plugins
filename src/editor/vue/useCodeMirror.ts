@@ -36,6 +36,8 @@ export interface CodeMirrorHandle {
   focus(): void
   setErrorLine(line: number | null): void
   flashLines(from: number, to?: number): void
+  /** Subtle highlight of a single line (used by tree ↔ source hover linking). */
+  setHoverLine(line: number | null): void
   destroy(): void
 }
 
@@ -58,10 +60,15 @@ export interface CreateCodeMirrorOptions {
   onDocChange?: (value: string) => void
   onOversizedPaste?: (info: { bytes: number; text: string }) => void
   onReady?: (view: EditorView) => void
+  /** Fired when the pointer hovers a different source line (or leaves: `null`). */
+  onLineHover?: (line: number | null) => void
+  /** Fired when the user copies a non-empty selection out of the editor. */
+  onCopy?: (selectedText: string) => void
 }
 
 const errorLineEffect = StateEffect.define<DecorationSet>()
 const flashEffect = StateEffect.define<DecorationSet>()
+const hoverLineEffect = StateEffect.define<DecorationSet>()
 
 function decorationField(effect: StateEffectType<DecorationSet>) {
   return StateField.define<DecorationSet>({
@@ -76,6 +83,7 @@ function decorationField(effect: StateEffectType<DecorationSet>) {
 
 const errorLineField = decorationField(errorLineEffect)
 const flashField = decorationField(flashEffect)
+const hoverField = decorationField(hoverLineEffect)
 
 /** Colours resolve to `--je-*` variables, so light/dark needs no reconfigure. */
 const jsonHighlight = syntaxHighlighting(
@@ -129,9 +137,12 @@ export function createCodeMirror(options: CreateCodeMirrorOptions): CodeMirrorHa
     onDocChange,
     onOversizedPaste,
     onReady,
+    onLineHover,
+    onCopy,
   } = options
 
   let suppressEmit = false
+  let lastHoverLine = -1
   const editableCompartment = new Compartment()
   const indentCompartment = new Compartment()
 
@@ -149,6 +160,7 @@ export function createCodeMirror(options: CreateCodeMirrorOptions): CodeMirrorHa
     EditorView.contentAttributes.of({ 'aria-label': 'JSON editor' }),
     errorLineField,
     flashField,
+    hoverField,
     editableCompartment.of([EditorState.readOnly.of(readOnly), EditorView.editable.of(!readOnly)]),
     indentCompartment.of(indentUnit.of(typeof indent === 'number' ? ' '.repeat(indent) : indent)),
     EditorView.updateListener.of((update) => {
@@ -165,6 +177,30 @@ export function createCodeMirror(options: CreateCodeMirrorOptions): CodeMirrorHa
         event.preventDefault()
         onOversizedPaste?.({ bytes, text })
         return true
+      },
+      mousemove(event) {
+        const pos = view.posAtCoords({ x: event.clientX, y: event.clientY })
+        if (pos == null) return false
+        const line = view.state.doc.lineAt(pos).number
+        if (line !== lastHoverLine) {
+          lastHoverLine = line
+          onLineHover?.(line)
+        }
+        return false
+      },
+      mouseleave() {
+        if (lastHoverLine !== -1) {
+          lastHoverLine = -1
+          onLineHover?.(null)
+        }
+        return false
+      },
+      copy() {
+        const { main } = view.state.selection
+        if (main.empty) return false
+        const text = view.state.sliceDoc(main.from, main.to)
+        if (text) onCopy?.(text)
+        return false
       },
     }),
   ]
@@ -265,6 +301,14 @@ export function createCodeMirror(options: CreateCodeMirrorOptions): CodeMirrorHa
         view.dispatch({ effects: flashEffect.of(Decoration.none) })
         flashTimer = null
       }, 1600)
+    },
+
+    setHoverLine(line: number | null) {
+      if (line == null || !Number.isFinite(line) || line < 1) {
+        view.dispatch({ effects: hoverLineEffect.of(Decoration.none) })
+        return
+      }
+      view.dispatch({ effects: hoverLineEffect.of(lineRanges(line, line, 'je-line-hover')) })
     },
 
     destroy() {

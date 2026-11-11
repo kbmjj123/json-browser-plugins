@@ -122,17 +122,50 @@ export interface TreeSearchOptions {
   caseSensitive?: boolean
 }
 
+export interface SearchMatchDetail {
+  /** Short preview shown in the results drawer. */
+  snippet: string
+  /** Which field matched (`key` / `value` / `path` / `all` / `jsonpath`). */
+  kind: string
+  /** JSON type of the matched node. */
+  type: string
+}
+
+/** One row in the host's search-results drawer. */
+export interface SearchRow {
+  path: string
+  snippet: string
+  kind: string
+  type: string
+}
+
+/** Everything a host toolbar needs to render navigation + the results drawer. */
+export interface SearchSummary {
+  total: number
+  invalid: boolean
+  truncated: boolean
+  currentIndex: number
+  rows: SearchRow[]
+}
+
 export interface TreeSearchResult {
   /** Paths whose own key or value matched. */
   matches: Set<string>
   /** Every ancestor of a match — expand these to reveal the matches. */
   ancestors: Set<string>
+  /** Display data per match, keyed by path (insertion order = result order). */
+  details: Map<string, SearchMatchDetail>
   total: number
   /** `true` only in `jsonpath` mode when the expression is invalid/unsupported. */
   invalid: boolean
+  /** `true` when the node/result budget stopped the walk early. */
+  truncated: boolean
 }
 
+// Same guardrails as the main site's `useTreeSearch`: a plain synchronous walk
+// must never be allowed to freeze the UI on every keystroke of a large file.
 const MAX_SEARCH_RESULTS = 5000
+const MAX_SEARCH_NODES = 400_000
 
 /** Resolve the effective mode, honouring the legacy `keys`/`values` booleans. */
 function resolveMode(options: TreeSearchOptions): TreeSearchMode | 'none' {
@@ -165,7 +198,10 @@ export function searchTree(
   options: TreeSearchOptions = {}
 ): TreeSearchResult {
   const caseSensitive = options.caseSensitive ?? false
-  const empty: TreeSearchResult = { matches: new Set(), ancestors: new Set(), total: 0, invalid: false }
+  const empty: TreeSearchResult = {
+    matches: new Set(), ancestors: new Set(), details: new Map(),
+    total: 0, invalid: false, truncated: false,
+  }
   const needle = query.trim()
   if (!needle) return empty
 
@@ -175,16 +211,19 @@ export function searchTree(
   // JSONPath bypasses the plain substring walk: expressions are case-sensitive.
   if (mode === 'jsonpath') {
     const found = evaluateJsonPath(root.value, needle)
-    if (found === null) return { matches: new Set(), ancestors: new Set(), total: 0, invalid: true }
+    if (found === null) return { ...empty, invalid: true }
     const matches = new Set<string>()
     const ancestors = new Set<string>()
+    const details = new Map<string, SearchMatchDetail>()
+    let truncated = false
     for (const hit of found) {
-      if (matches.size >= MAX_SEARCH_RESULTS) break
+      if (matches.size >= MAX_SEARCH_RESULTS) { truncated = true; break }
       if (matches.has(hit.path)) continue
       matches.add(hit.path)
+      details.set(hit.path, { snippet: hit.path, kind: 'jsonpath', type: '' })
       for (const ancestor of ancestorPaths(hit.path)) ancestors.add(ancestor)
     }
-    return { matches, ancestors, total: matches.size, invalid: false }
+    return { matches, ancestors, details, total: matches.size, invalid: false, truncated }
   }
 
   const target = caseSensitive ? needle : needle.toLowerCase()
@@ -195,22 +234,36 @@ export function searchTree(
 
   const matches = new Set<string>()
   const ancestors = new Set<string>()
+  const details = new Map<string, SearchMatchDetail>()
+  let visited = 0
+  let truncated = false
   const walk = (node: TreeNode) => {
-    let matched = false
-    if ((mode === 'key' || mode === 'all') && hit(node.key)) matched = true
-    if (!matched && (mode === 'value' || mode === 'all') && node.children.length === 0) {
-      if (hit(formatScalar(node.value))) matched = true
+    if (visited >= MAX_SEARCH_NODES || matches.size >= MAX_SEARCH_RESULTS) {
+      truncated = true
+      return
     }
-    if (!matched && (mode === 'path' || mode === 'all') && hit(node.path)) matched = true
+    visited++
+    let matched = false
+    let snippet = ''
+    if ((mode === 'key' || mode === 'all') && hit(node.key)) { matched = true; snippet = node.key }
+    if (!matched && (mode === 'value' || mode === 'all') && node.children.length === 0) {
+      const value = formatScalar(node.value)
+      if (hit(value)) { matched = true; snippet = value }
+    }
+    if (!matched && (mode === 'path' || mode === 'all') && hit(node.path)) { matched = true; snippet = node.path }
     if (matched) {
       matches.add(node.path)
+      details.set(node.path, { snippet: snippet.slice(0, 120), kind: mode, type: node.type })
       for (const ancestor of ancestorPaths(node.path)) ancestors.add(ancestor)
     }
-    for (const child of node.children) walk(child)
+    for (const child of node.children) {
+      if (visited >= MAX_SEARCH_NODES || matches.size >= MAX_SEARCH_RESULTS) { truncated = true; break }
+      walk(child)
+    }
   }
 
   walk(root)
-  return { matches, ancestors, total: matches.size, invalid: false }
+  return { matches, ancestors, details, total: matches.size, invalid: false, truncated }
 }
 
 /** How a leaf value is rendered (and searched) as text. */

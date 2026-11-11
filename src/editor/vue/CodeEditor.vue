@@ -33,6 +33,8 @@ const props = withDefaults(
     bordered?: boolean
     locale?: Locale
     messages?: Partial<Messages>
+    /** 1-based line to subtly highlight, mirroring a hovered tree row. */
+    hoverLine?: number | null
   }>(),
   {
     modelValue: '',
@@ -42,6 +44,7 @@ const props = withDefaults(
     maxBytes: 0,
     showStatus: true,
     bordered: true,
+    hoverLine: null,
   }
 )
 
@@ -49,6 +52,8 @@ const emit = defineEmits<{
   'update:modelValue': [value: string]
   error: [info: { message: string; location: ErrorLocation | null } | null]
   'oversized-paste': [info: { bytes: number; text: string }]
+  'hover-line': [line: number | null]
+  'copied': [text: string]
 }>()
 
 const hostRef = ref<HTMLElement | null>(null)
@@ -101,7 +106,11 @@ onMounted(() => {
     maxBytes: props.maxBytes,
     onDocChange: (value) => emit('update:modelValue', value),
     onOversizedPaste: (info) => emit('oversized-paste', info),
+    onLineHover: (line) => emit('hover-line', line),
+    onCopy: (text) => emit('copied', text),
   })
+
+  handle.setHoverLine(props.hoverLine ?? null)
 })
 
 onBeforeUnmount(() => {
@@ -119,6 +128,12 @@ watch(
 
 watch([() => props.readOnly], ([readOnly]) => handle?.setReadOnly(readOnly))
 watch([() => props.indent], ([indent]) => handle?.setIndent(indent))
+
+// Mirror a hovered tree row onto the source line.
+watch(
+  () => props.hoverLine,
+  (line) => handle?.setHoverLine(line ?? null)
+)
 
 // Highlight the failing line, and report the error upward.
 watch(

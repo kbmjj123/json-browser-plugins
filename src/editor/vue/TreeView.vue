@@ -1,6 +1,6 @@
 <template>
   <div class="je-pane">
-    <div class="je-toolbar">
+    <div v-if="showToolbar" class="je-toolbar">
       <span v-if="props.searchQuery === undefined" class="je-search">
         <span v-html="icons.search" />
         <input
@@ -83,18 +83,29 @@
     <div v-if="!root || root.children.length === 0" class="je-empty">
       {{ t('empty') }}
     </div>
-    <div v-else class="je-tree" role="tree">
+    <div
+      v-else
+      ref="treeElRef"
+      class="je-tree"
+      role="tree"
+      @scroll.passive="onTreeScroll"
+      @mouseleave="emit('hover-path', null)"
+    >
       <div
         v-for="node in visible"
         :key="node.path || '__root__'"
         class="je-row"
         :class="{
           'is-match': result.matches.has(node.path),
+          'is-current': currentMatchPath === node.path,
+          'is-flash': flashPath === node.path,
           'is-batch': editing.batchSelected.value.has(node.path),
+          'is-linked': props.hoveredPath != null && node.path === props.hoveredPath,
         }"
         role="treeitem"
         :aria-level="node.depth + 1"
         :aria-expanded="node.children.length ? expanded.has(node.path) : undefined"
+        @mouseenter="emit('hover-path', node.path)"
         @click="onRowClick(node)"
       >
         <span class="je-indent" :style="{ width: (node.depth * 16) + 'px' }" />
@@ -272,12 +283,13 @@
           <button type="button" class="je-btn" @click="commitCopyMove(node)">OK</button>
         </span>
       </div>
+      <div v-if="hasMore" class="je-more">{{ visible.length }} / {{ flat.length }} ↓</div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
+import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue'
 import {
   buildTree,
   collectContainerPaths,
@@ -285,8 +297,12 @@ import {
   searchTree,
   splitByQuery,
   formatScalar,
+  ancestorPaths,
   type TreeNode,
   type TreeSearchMode,
+  type SearchMatchDetail,
+  type SearchRow,
+  type SearchSummary,
 } from '../core/tree'
 import type { IndentOption } from '../core/format'
 import { toJsonPath } from '../core/path'
@@ -326,6 +342,10 @@ const props = withDefaults(
     searchMode?: TreeSearchMode
     /** Render image values as just the <img> with no surrounding label. */
     bareImage?: boolean
+    /** Hide this pane's own toolbar when the host renders the controls instead. */
+    showToolbar?: boolean
+    /** Path currently highlighted by the linked source view (tree ↔ source hover). */
+    hoveredPath?: string | null
   }>(),
   {
     value: undefined,
@@ -337,6 +357,8 @@ const props = withDefaults(
     masked: false,
     sensitivePaths: () => [],
     imagePreview: true,
+    showToolbar: true,
+    hoveredPath: null,
   }
 )
 
@@ -344,6 +366,12 @@ const emit = defineEmits<{
   select: [info: { path: string; jsonPath: string; value: unknown }]
   copied: [info: { kind: 'path' | 'jsonPath' | 'value'; text: string }]
   'update:text': [text: string]
+  /** Search summary for hosts that render the toolbar themselves. */
+  searchResult: [info: SearchSummary]
+  /** Keep the host's expand/collapse button icon in sync. */
+  'update:allExpanded': [value: boolean]
+  /** Hovered tree row (path) — drives the linked source-line highlight. */
+  'hover-path': [path: string | null]
 }>()
 
 const pluginOptions = useJsonEditorOptions()
@@ -424,8 +452,24 @@ const internalQuery = ref('')
 const internalMode = ref<TreeSearchMode>('key')
 // When the host passes `searchQuery`/`searchMode` (controlled mode), those win;
 // otherwise the tree keeps its own local search state (the default, site behavior).
-const query = computed(() => props.searchQuery ?? internalQuery.value)
+const rawQuery = computed(() => props.searchQuery ?? internalQuery.value)
 const mode = computed(() => props.searchMode ?? internalMode.value)
+
+// Debounce the actual search: one pass over a 1–2 MiB document costs hundreds
+// of milliseconds, so running it on every keystroke freezes the viewer. Same
+// guardrail as the main site's useTreeSearch. Clearing is immediate.
+const debouncedQuery = ref(rawQuery.value)
+let queryTimer: ReturnType<typeof setTimeout> | null = null
+watch(rawQuery, (value) => {
+  if (queryTimer) clearTimeout(queryTimer)
+  if (!value?.trim()) {
+    debouncedQuery.value = value ?? ''
+    return
+  }
+  queryTimer = setTimeout(() => { debouncedQuery.value = value ?? '' }, 250)
+})
+onBeforeUnmount(() => { if (queryTimer) clearTimeout(queryTimer) })
+const query = computed(() => debouncedQuery.value)
 
 function onSearchInput(e: Event) {
   internalQuery.value = (e.target as HTMLInputElement).value
@@ -437,34 +481,158 @@ function onSearchModeChange(e: Event) {
 const result = computed(() =>
   root.value
     ? searchTree(root.value, query.value, { mode: mode.value })
-    : { matches: new Set<string>(), ancestors: new Set<string>(), total: 0, invalid: false }
+    : {
+        matches: new Set<string>(), ancestors: new Set<string>(),
+        details: new Map<string, SearchMatchDetail>(),
+        total: 0, invalid: false, truncated: false,
+      }
 )
 
-// Reveal matches as the user types, without fighting manual expand/collapse:
-// only ancestors of the current query are merged in.
+// ── Search navigation (same semantics as the site's useTreeSearch) ───────────
+const matchPaths = computed(() => [...result.value.matches])
+const searchRows = computed<SearchRow[]>(() =>
+  matchPaths.value.map((path) => {
+    const detail = result.value.details.get(path)
+    return {
+      path,
+      snippet: detail?.snippet ?? path,
+      kind: detail?.kind ?? '',
+      type: detail?.type ?? '',
+    }
+  })
+)
+const currentIndex = ref(-1)
+const currentMatchPath = computed(() => matchPaths.value[currentIndex.value] ?? '')
+const flashPath = ref('')
+let flashTimer: ReturnType<typeof setTimeout> | null = null
+
+const summary = computed<SearchSummary>(() => ({
+  total: result.value.total,
+  invalid: result.value.invalid,
+  truncated: result.value.truncated,
+  currentIndex: currentIndex.value,
+  rows: searchRows.value,
+}))
+watch(summary, (value) => emit('searchResult', value), { immediate: true })
+watch(matchPaths, (paths) => { currentIndex.value = paths.length ? 0 : -1 })
+
+// Reveal only the FIRST few matches up front. Merging every ancestor of every
+// hit used to flatten the whole document into a single render pass (120k+ rows
+// for a 1.4 MiB file) and froze the UI while typing.
+const MAX_AUTO_EXPAND_PATHS = 200
 watch(result, (next) => {
   if (!next.total) return
   const merged = new Set(expanded.value)
-  for (const path of next.ancestors) merged.add(path)
+  let revealed = 0
+  for (const path of next.ancestors) {
+    if (revealed++ >= MAX_AUTO_EXPAND_PATHS) break
+    merged.add(path)
+  }
   expanded.value = merged
 })
 
-const visible = computed(() => (root.value ? flattenVisible(root.value, expanded.value) : []))
+// Flat rendering has no virtualization: a 1–2 MiB document flattens into
+// 100k+ rows, and diffing that on every keystroke freezes the viewer. Render a
+// bounded prefix and extend it as the user scrolls (progressive loading).
+const ROW_CHUNK = 1500
+const rowLimit = ref(ROW_CHUNK)
+const treeElRef = ref<HTMLElement | null>(null)
+const flat = computed(() => (root.value ? flattenVisible(root.value, expanded.value) : []))
+const visible = computed(() => flat.value.slice(0, rowLimit.value))
+const hasMore = computed(() => flat.value.length > visible.value.length)
+const showAllRows = ref(false)
+// A new search / document returns to progressive loading, so typing can never
+// force a render of the entire document after an "Expand all".
+watch([query, mode, root], () => { showAllRows.value = false })
+watch([query, mode, root, expanded], () => {
+  rowLimit.value = showAllRows.value ? Number.MAX_SAFE_INTEGER : ROW_CHUNK
+})
+function onTreeScroll(e: Event) {
+  if (!hasMore.value) return
+  const el = e.target as HTMLElement
+  if (el.scrollTop + el.clientHeight >= el.scrollHeight - 120) rowLimit.value += ROW_CHUNK
+}
+
+/** Expand a path's ancestors, bring its row into the rendered window and
+ *  scroll to it. `flash` marks a jump made from the results drawer. */
+async function revealMatch(path: string, flash: boolean) {
+  const merged = new Set(expanded.value)
+  for (const ancestor of ancestorPaths(path)) merged.add(ancestor)
+  merged.add('')
+  expanded.value = merged
+  await nextTick() // let the rowLimit reset watch run before extending it
+  const index = flat.value.findIndex((node) => node.path === path)
+  if (index >= 0) rowLimit.value = Math.max(rowLimit.value, index + ROW_CHUNK)
+  await nextTick()
+  const row = treeElRef.value?.children[index] as HTMLElement | undefined
+  row?.scrollIntoView({ block: 'center' })
+  if (!flash) return
+  flashPath.value = path
+  if (flashTimer) clearTimeout(flashTimer)
+  flashTimer = setTimeout(() => { flashPath.value = '' }, 2000)
+}
+onBeforeUnmount(() => { if (flashTimer) clearTimeout(flashTimer) })
+
+function nextMatch() {
+  if (!matchPaths.value.length) return
+  currentIndex.value = (currentIndex.value + 1) % matchPaths.value.length
+  void revealMatch(currentMatchPath.value, false)
+}
+function prevMatch() {
+  if (!matchPaths.value.length) return
+  currentIndex.value = (currentIndex.value - 1 + matchPaths.value.length) % matchPaths.value.length
+  void revealMatch(currentMatchPath.value, false)
+}
+function jumpTo(path: string, index: number) {
+  currentIndex.value = index
+  void revealMatch(path, true)
+}
 
 const allContainerPaths = computed(() => (root.value ? collectContainerPaths(root.value) : []))
 const allExpanded = computed(
   () => allContainerPaths.value.length > 0 && allContainerPaths.value.every((p) => expanded.value.has(p))
 )
+watch(allExpanded, (value) => emit('update:allExpanded', value), { immediate: true })
 
+// Start every document fully expanded. Progressive rendering still caps the DOM
+// rows, so very large documents stay responsive instead of flattening the whole
+// tree into one render pass.
+watch(root, (r) => {
+  if (r) expanded.value = new Set(allContainerPaths.value)
+}, { immediate: true })
+
+function findSubtreeByPath(node: TreeNode | null, path: string): TreeNode | null {
+  if (!node) return null
+  if (node.path === path) return node
+  for (const child of node.children) {
+    const found = findSubtreeByPath(child, path)
+    if (found) return found
+  }
+  return null
+}
+
+/** Clicking a twisty expands the WHOLE subtree, not just one level. Collapsing
+ *  removes the node and every descendant from the expanded set. */
 function toggle(path: string) {
   const next = new Set(expanded.value)
-  if (next.has(path)) next.delete(path)
-  else next.add(path)
+  if (next.has(path)) {
+    for (const p of [...next]) {
+      if (p === path || p.startsWith(`${path}.`) || p.startsWith(`${path}[`)) next.delete(p)
+    }
+  } else {
+    next.add(path)
+    const node = findSubtreeByPath(root.value, path)
+    if (node) for (const p of collectContainerPaths(node)) next.add(p)
+  }
   expanded.value = next
 }
 
 function toggleAll() {
-  expanded.value = allExpanded.value ? new Set<string>() : new Set(allContainerPaths.value)
+  showAllRows.value = !allExpanded.value
+  expanded.value = showAllRows.value
+    ? new Set(allContainerPaths.value)
+    : new Set<string>()
+  rowLimit.value = showAllRows.value ? Number.MAX_SAFE_INTEGER : ROW_CHUNK
 }
 
 function keyChunks(node: TreeNode) {
@@ -665,4 +833,6 @@ function applyBatch() {
   editing.clearBatch()
   batchValue.value = ''
 }
+
+defineExpose({ toggleAll, nextMatch, prevMatch, jumpTo })
 </script>
