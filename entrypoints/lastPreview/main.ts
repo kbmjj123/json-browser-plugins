@@ -4,6 +4,12 @@ import ViewerShell from '../../src/components/ViewerShell.vue'
 import type { JsonEditorOptions } from '../../src/editor/wc/defineJsonEditor'
 import { getOptions, STORAGE_KEY, DEFAULT_OPTIONS, resolveDark, type ExtensionOptions } from '../../utils/options'
 import { SITE_URL, KO_FI_URL } from '../../utils/constants'
+// Inlined at build time so extension images are data URIs. Although this page is
+// an extension page (where `chrome-extension://` works), keeping them inline
+// makes the two hosts identical and immune to any host-page behaviour.
+import iconDataUrl from '../../public/icon-32.png?inline'
+import wechatDataUrl from '../../public/qr/wechat-pay.png?inline'
+import alipayDataUrl from '../../public/qr/alipay.png?inline'
 
 const LAST_PREVIEW_KEY = 'lastPreview'
 
@@ -90,9 +96,9 @@ async function main(): Promise<void> {
   }
 
   const editorOptions = buildOptions(opts, value)
-  const wechatUrl = browser.runtime.getURL('/qr/wechat-pay.png')
-  const alipayUrl = browser.runtime.getURL('/qr/alipay.png')
-  const iconUrl = browser.runtime.getURL('/icon-32.png')
+  const wechatUrl = wechatDataUrl
+  const alipayUrl = alipayDataUrl
+  const iconUrl = iconDataUrl
 
   const shellApp = createApp(ViewerShell, {
     editorOptions,

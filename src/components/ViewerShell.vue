@@ -34,6 +34,15 @@ const props = defineProps<{
   hideAuto?: boolean
 }>()
 
+// The icon is inlined as a data URI by the hosts, but on a strict-CSP page even a
+// data: <img> can be blocked. Fall back to an inline SVG (pure markup, no
+// subresource) so the title bar always shows *something* on the left.
+const iconError = ref(false)
+// Same strict-CSP hazard for the support QR codes: hide a QR if its data URI is
+// ever blocked, instead of showing a broken-image glyph.
+const qrErrorW = ref(false)
+const qrErrorA = ref(false)
+
 const emit = defineEmits<{ change: [value: string] }>()
 
 // `editorOptions`/`labels` are copied into refs so the host (content script or
@@ -159,7 +168,28 @@ defineExpose({
 <template>
   <div class="vsh" :class="{ dark }">
     <div class="bar">
-      <img v-if="iconUrl" class="logo" :src="iconUrl" :alt="labels.site" />
+      <img
+        v-if="iconUrl && !iconError"
+        class="logo"
+        :src="iconUrl"
+        :alt="labels.site"
+        @error="iconError = true"
+      />
+      <svg
+        v-else
+        class="logo"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        aria-hidden="true"
+      >
+        <path d="M8 4H6a2 2 0 0 0-2 2v2M16 4h2a2 2 0 0 1 2 2v2" />
+        <path d="M8 20H6a2 2 0 0 1-2-2v-2M16 20h2a2 2 0 0 0 2-2v-2" />
+        <path d="M9 9l-3 3 3 3M15 9l3 3-3 3" />
+      </svg>
       <span class="title">{{ labels.title }}</span>
 
       <!-- Always-visible right side: settings + raw/tree toggle + site + support. -->
@@ -215,11 +245,11 @@ defineExpose({
         <p class="qr-sub">微信或支付宝扫码，感谢你的支持！</p>
         <div class="qr-grid">
           <div v-if="wechatUrl" class="qr-item">
-            <img :src="wechatUrl" alt="微信支付" />
+            <img v-if="!qrErrorW" :src="wechatUrl" alt="微信支付" @error="qrErrorW = true" />
             <span>微信支付</span>
           </div>
           <div v-if="alipayUrl" class="qr-item">
-            <img :src="alipayUrl" alt="支付宝" />
+            <img v-if="!qrErrorA" :src="alipayUrl" alt="支付宝" @error="qrErrorA = true" />
             <span>支付宝</span>
           </div>
         </div>

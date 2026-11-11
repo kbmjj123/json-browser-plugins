@@ -10,11 +10,16 @@
 // `packages/json-editor/src/` (JsonEditor.vue and siblings), so plugin-only UX
 // changes never require publishing a new npm version.
 import { createApp } from 'vue'
-import { browser } from 'wxt/browser'
 import ViewerShell from '../src/components/ViewerShell.vue'
 import type { JsonEditorOptions } from '../src/editor/wc/defineJsonEditor'
 import { type ExtensionOptions, resolveDark } from './options'
 import { SITE_URL, KO_FI_URL } from './constants'
+// Inlined at build time so extension images are data URIs (immune to host-page
+// CSP `img-src`, which never allows the `chrome-extension:` scheme). ViewerShell
+// also keeps an inline-SVG fallback for the title-bar icon on strict-CSP pages.
+import iconDataUrl from '../public/icon-32.png?inline'
+import wechatDataUrl from '../public/qr/wechat-pay.png?inline'
+import alipayDataUrl from '../public/qr/alipay.png?inline'
 
 export interface JsonDocument {
   text: string
@@ -108,9 +113,9 @@ export function detectAndMount(
     }
   }
 
-  const wechatUrl = browser.runtime.getURL('/qr/wechat-pay.png')
-  const alipayUrl = browser.runtime.getURL('/qr/alipay.png')
-  const iconUrl = browser.runtime.getURL('/icon-32.png')
+  const wechatUrl = wechatDataUrl
+  const alipayUrl = alipayDataUrl
+  const iconUrl = iconDataUrl
 
   // The shared shell renders the top bar, site/support links, the QR modal and
   // the raw/tree toggle; the editor itself is mounted inside it. This is the
