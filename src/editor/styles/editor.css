@@ -1230,11 +1230,16 @@ select.je-site-select:hover { background: var(--je-bg-alt); }
   border-color: rgba(255, 255, 255, 0.4);
   color: #fff;
 }
-.je-lightbox-dlall {
+.je-lightbox .je-lightbox-dlall {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
   width: auto;
   padding: 0 10px;
   gap: 6px;
   font-size: 13px;
+  white-space: nowrap;
 }
 .je-lightbox-arrow {
   width: 44px;

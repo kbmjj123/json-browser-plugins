@@ -11,6 +11,7 @@ import { defineJsonEditor, type JsonEditorInstance, type JsonEditorOptions } fro
 import { editorCss } from '../src/editor/editorCss'
 import { resolveDark, type ExtensionOptions } from './options'
 import { SITE_URL } from './constants'
+import { browser } from 'wxt/browser'
 
 export interface JsonDocument {
   text: string
@@ -229,7 +230,7 @@ export function detectAndMount(
   // ── Always-visible top-right links (both raw and tree modes) ─────────────
   // A site link drives traffic back home, and a "buy me a coffee" support link
   // thanks users. Appended last so they sit above the overlay.
-  const KO_FI_URL = 'https://ko-fi.com'
+  const KO_FI_URL = 'https://ko-fi.com/kbmjj123'
   const kofiText = options.locale === 'zh' ? '☕ 请喝咖啡' : '☕ Buy me a coffee'
   const siteHost = fixedHost(SITELINK_ID, { top: '0', right: '16px' })
   const siteRoot = siteHost.attachShadow({ mode: 'open' })
@@ -273,6 +274,90 @@ export function detectAndMount(
   siteRoot.append(siteStyle, siteRow)
   document.body.appendChild(siteHost)
 
+  // ── "Buy me a coffee" QR modal (Chinese locale only) ─────────────────────
+  // Ko-fi is unavailable in mainland China, so zh users get a modal with WeChat
+  // / Alipay payment QR codes instead of being sent to ko-fi.com.
+  const wechatUrl = browser.runtime.getURL('/qr/wechat-pay.png')
+  const alipayUrl = browser.runtime.getURL('/qr/alipay.png')
+  const qrHost = fixedHost('jsontb-qr', { inset: '0' })
+  const qrRoot = qrHost.attachShadow({ mode: 'open' })
+  const qrStyle = document.createElement('style')
+  qrStyle.textContent = `
+    :host { all: initial }
+    .backdrop { position: fixed; inset: 0; background: rgba(0,0,0,.55);
+      display: flex; align-items: center; justify-content: center; z-index: 1;
+      font-family: system-ui, -apple-system, sans-serif }
+    .card { background: #fff; color: #1f2937; border-radius: 16px;
+      padding: 22px 24px 24px; width: 320px; max-width: calc(100vw - 32px);
+      box-shadow: 0 20px 60px rgba(0,0,0,.35); position: relative; text-align: center }
+    .card.dark { background: #1e293b; color: #e2e8f0 }
+    .title { font-size: 16px; font-weight: 700; margin: 0 0 4px }
+    .sub { font-size: 12px; color: #64748b; margin: 0 0 18px }
+    .card.dark .sub { color: #94a3b8 }
+    .grid { display: flex; gap: 18px; justify-content: center }
+    .item { display: flex; flex-direction: column; align-items: center; gap: 8px }
+    .item img { width: 132px; height: 132px; border-radius: 10px;
+      border: 1px solid #e2e8f0; background: #fff; object-fit: contain }
+    .card.dark .item img { border-color: #334155; background: #fff }
+    .item span { font-size: 13px; font-weight: 600 }
+    .close { position: absolute; top: 10px; right: 12px; border: 0;
+      background: transparent; color: #94a3b8; font-size: 22px; line-height: 1;
+      cursor: pointer; padding: 2px 6px; border-radius: 8px }
+    .close:hover { background: rgba(0,0,0,.06); color: #475569 }
+    .card.dark .close:hover { background: rgba(255,255,255,.1); color: #cbd5e1 }
+  `
+  const qrBackdrop = document.createElement('div')
+  qrBackdrop.className = 'backdrop'
+  const qrCard = document.createElement('div')
+  qrCard.className = 'card' + (resolveDark(options.theme) ? ' dark' : '')
+  const qrTitle = document.createElement('p')
+  qrTitle.className = 'title'
+  qrTitle.textContent = '请我喝杯咖啡 ☕'
+  const qrSub = document.createElement('p')
+  qrSub.className = 'sub'
+  qrSub.textContent = '微信或支付宝扫码，感谢你的支持！'
+  const qrGrid = document.createElement('div')
+  qrGrid.className = 'grid'
+  function makeQrItem(url: string, label: string): HTMLElement {
+    const item = document.createElement('div')
+    item.className = 'item'
+    const img = document.createElement('img')
+    img.src = url
+    img.alt = label
+    const span = document.createElement('span')
+    span.textContent = label
+    item.append(img, span)
+    return item
+  }
+  qrGrid.append(makeQrItem(wechatUrl, '微信支付'), makeQrItem(alipayUrl, '支付宝'))
+  const qrClose = document.createElement('button')
+  qrClose.className = 'close'
+  qrClose.type = 'button'
+  qrClose.setAttribute('aria-label', '关闭')
+  qrClose.textContent = '×'
+  qrCard.append(qrClose, qrTitle, qrSub, qrGrid)
+  qrBackdrop.append(qrCard)
+  qrRoot.append(qrStyle, qrBackdrop)
+  qrHost.style.display = 'none'
+  document.body.appendChild(qrHost)
+
+  function openQrModal(): void {
+    qrHost.style.display = 'block'
+  }
+  function closeQrModal(): void {
+    qrHost.style.display = 'none'
+  }
+  qrBackdrop.addEventListener('click', (e) => { if (e.target === qrBackdrop) closeQrModal() })
+  qrClose.addEventListener('click', closeQrModal)
+
+  // zh locale: show the payment QR modal; everyone else goes to Ko-fi.
+  kofiAnchor.addEventListener('click', (e) => {
+    if (options.locale === 'zh') {
+      e.preventDefault()
+      openQrModal()
+    }
+  })
+
   function apply(next: ExtensionOptions, nextLabels: ViewerLabels): void {
     if (destroyed) return
     currentLabels = nextLabels
@@ -292,6 +377,7 @@ export function detectAndMount(
     restoreViewerContainer()
     siteHost.remove()
     rawHost.remove()
+    qrHost.remove()
     viewerHost.remove()
   }
 
