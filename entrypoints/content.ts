@@ -110,6 +110,36 @@ function viewerLabels(): ViewerLabels {
   }
 }
 
+/** Key holding the most-recently previewed JSON, opened by the toolbar icon. */
+export const LAST_PREVIEW_KEY = 'lastPreview'
+
+/**
+ * Persist the current page's JSON so the toolbar-icon new-tab page can show the
+ * most recent preview. Capped to stay well under storage limits; failures are
+ * non-fatal (storage full / unavailable).
+ */
+async function saveLastPreview(text: string, url: string): Promise<void> {
+  if (text.length > 2_000_000) return // ~4MB UTF-16 cap
+  try {
+    await browser.storage.local.set({ [LAST_PREVIEW_KEY]: { text, url, ts: Date.now() } })
+  } catch {
+    // Non-fatal: the new-tab page simply falls back to its empty state.
+  }
+}
+
+/** Debounce editor edits before writing to storage (typing fires many events). */
+function debounce<A extends unknown[]>(fn: (...args: A) => void, ms: number): (...args: A) => void {
+  let timer: ReturnType<typeof setTimeout> | undefined
+  return (...args: A) => {
+    if (timer) clearTimeout(timer)
+    timer = setTimeout(() => fn(...args), ms)
+  }
+}
+
+const saveLastPreviewDebounced = debounce((text: string) => {
+  void saveLastPreview(text, location.href)
+}, 500)
+
 export default defineContentScript({
   matches: ['<all_urls>', 'file:///*'],
   runAt: 'document_idle',
@@ -144,6 +174,9 @@ export default defineContentScript({
 
       diag('ensure: mounting viewer')
       controller = detectAndMount(detected, opts, viewerLabels())
+      void saveLastPreview(detected.text, location.href)
+      // Keep the stored preview in sync with live edits in the left pane.
+      controller.onChange((value) => saveLastPreviewDebounced(value))
     }
 
     ensure()

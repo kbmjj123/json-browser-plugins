@@ -16,6 +16,11 @@ export default defineConfig({
     // deliberately not declared. `storage` is only for saving popup config.
     permissions: ['storage'],
 
+    // No default_popup: the toolbar icon opens a new tab (handled in
+    // entrypoints/background.ts via action.onClicked). Declaring `action` here
+    // guarantees the toolbar action exists so onClicked fires reliably.
+    action: {},
+
     icons: {
       16: '/icon-16.png',
       32: '/icon-32.png',

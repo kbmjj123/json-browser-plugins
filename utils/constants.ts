@@ -1,5 +1,8 @@
 export const SITE_URL = 'https://jsontoolbox.cc'
 
+/** "Buy me a coffee" support link shown in the viewer chrome. */
+export const KO_FI_URL = 'https://ko-fi.com/kbmjj123'
+
 /**
  * Never auto-beautify the tool site's own UI pages. Exact hosts only — NOT a
  * suffix match: `resources.jsontoolbox.cc` hosts the raw JSON sample files
