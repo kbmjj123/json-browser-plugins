@@ -206,7 +206,7 @@ defineExpose({
           </button>
           <div v-if="showSettings" class="settings-pop">
             <ViewerSettings
-              :locale="(opts.value.locale === 'zh' ? 'zh' : 'en') as 'en' | 'zh'"
+              :locale="(opts.locale === 'zh' ? 'zh' : 'en') as 'en' | 'zh'"
               :hide-auto="hideAuto"
               :site-url="siteUrl"
               @close="showSettings = false"
@@ -233,7 +233,7 @@ defineExpose({
 
     <div class="body">
       <div v-show="mode === 'tree'" ref="editorMount" class="je"></div>
-      <pre v-show="mode === 'raw'" class="raw">{{ opts.value.value }}</pre>
+      <pre v-show="mode === 'raw'" class="raw">{{ opts.value }}</pre>
     </div>
 
     <div v-if="showQrModal" class="qr-backdrop" @click.self="closeQr">

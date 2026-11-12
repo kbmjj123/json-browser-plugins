@@ -1,42 +1,52 @@
 /* Regenerate the five 1280x800 Chrome Web Store screenshots.
  *
- *   node scripts/capture-screenshots.cjs
+ *   node scripts/capture-screenshots.cjs        # English -> store-assets/
+ *   node scripts/capture-screenshots.cjs --zh   # Chinese -> store-assets/zh/
  *
  * Requires a built .output/chrome-mv3 and a local Playwright + Chromium.
  * Notes for this machine: system Chrome 148 ignores --load-extension, and
  * Playwright passes --disable-extensions by default, so we use the bundled
- * chromium-1223 and strip that switch. The generated PNGs land in store-assets/.
+ * chromium-1223 and strip that switch.
  */
 const fs = require('node:fs')
 const path = require('node:path')
 const { chromium } = require('/Users/kbmjj123/.nvm/versions/node/v22.16.0/lib/node_modules/@playwright/cli/node_modules/playwright')
 
+const ZH = process.argv.includes('--zh')
 const ROOT = path.resolve(__dirname, '..')
 const BUILD = path.join(ROOT, '.output/chrome-mv3')
 const EXT = '/tmp/json-toolbox-shot-extension'
-const OUT = path.join(ROOT, 'store-assets')
+const OUT = path.join(ROOT, ZH ? 'store-assets/zh' : 'store-assets')
 const PROFILE = '/tmp/json-toolbox-shot-profile'
 const DEMO_ORIGIN = 'https://demo.jsontoolbox.cc'
+const BROWSER_LOCALE = ZH ? 'zh-CN' : 'en-US'
+const LABELS = {
+  results: ZH ? '搜索结果' : 'Results',
+  table: ZH ? '表格' : 'Table',
+}
 
 const objectJson = fs.readFileSync(path.join(ROOT, 'demo/object-showcase.json'), 'utf8')
 const tableJson = fs.readFileSync(path.join(ROOT, 'demo/table-orders.json'), 'utf8')
-const OPTIONS = { indent: 2, theme: 'light', locale: 'en', view: 'both', auto: true, imagePreview: true }
+const OPTIONS = { indent: 2, theme: 'light', locale: ZH ? 'zh' : 'en', view: 'both', auto: true, imagePreview: true }
 
 fs.mkdirSync(OUT, { recursive: true })
 fs.rmSync(PROFILE, { recursive: true, force: true })
 // chrome.i18n follows the browser UI language, not Playwright's `locale`.
-// Load a staged copy without the Chinese locales so screenshots fall back to
-// default_locale (en); the real .output/ directory is never modified.
+// For English screenshots, strip the Chinese locales from a staged copy so it
+// falls back to default_locale (en); for Chinese screenshots keep them. The
+// real .output/ directory is never modified.
 fs.rmSync(EXT, { recursive: true, force: true })
 fs.cpSync(BUILD, EXT, { recursive: true })
-fs.rmSync(path.join(EXT, '_locales', 'zh_CN'), { recursive: true, force: true })
-fs.rmSync(path.join(EXT, '_locales', 'zh'), { recursive: true, force: true })
+if (!ZH) {
+  fs.rmSync(path.join(EXT, '_locales', 'zh_CN'), { recursive: true, force: true })
+  fs.rmSync(path.join(EXT, '_locales', 'zh'), { recursive: true, force: true })
+}
 fs.mkdirSync(path.join(PROFILE, 'Default'), { recursive: true })
 fs.writeFileSync(
   path.join(PROFILE, 'Default', 'Preferences'),
-  JSON.stringify({ intl: { app_locale: 'en-US' } }),
+  JSON.stringify({ intl: { app_locale: BROWSER_LOCALE } }),
 )
-process.env.LANG = 'en_US.UTF-8'
+process.env.LANG = ZH ? 'zh_CN.UTF-8' : 'en_US.UTF-8'
 
 // Click an element even when it lives inside nested open shadow roots.
 async function deepClick(page, selector, text) {
@@ -67,7 +77,22 @@ async function shot(page, name, label) {
   await page.waitForTimeout(600)
   await page.screenshot({ path: path.join(OUT, name), animations: 'disabled' })
   const size = await page.evaluate(() => `${innerWidth}x${innerHeight}`)
-  console.log(`OK   ${name}  viewport=${size}  ${label}`)
+  console.log(`OK   [${ZH ? 'zh' : 'en'}] ${name}  viewport=${size}  ${label}`)
+}
+
+async function sortByAmount(page) {
+  console.log('sort amount:', await page.evaluate(() => {
+    function walk(root) {
+      for (const th of root.querySelectorAll('th')) {
+        if (th.textContent.trim().includes('amount')) { th.click(); return true }
+      }
+      for (const n of root.querySelectorAll('*')) {
+        if (n.shadowRoot && walk(n.shadowRoot)) return true
+      }
+      return false
+    }
+    return walk(document)
+  }))
 }
 
 async function main() {
@@ -76,13 +101,13 @@ async function main() {
     executablePath: '/Users/kbmjj123/Library/Caches/ms-playwright/chromium-1223/chrome-mac-x64/Google Chrome for Testing.app/Contents/MacOS/Google Chrome for Testing',
     viewport: { width: 1280, height: 800 },
     deviceScaleFactor: 1,
-    locale: 'en-US',
+    locale: BROWSER_LOCALE,
     ignoreDefaultArgs: ['--disable-extensions'],
     args: [
       `--disable-extensions-except=${EXT}`,
       `--load-extension=${EXT}`,
       '--enable-unsafe-extension-debugging',
-      '--lang=en-US',
+      `--lang=${BROWSER_LOCALE}`,
       '--no-first-run',
       '--no-default-browser-check',
     ],
@@ -136,7 +161,7 @@ async function main() {
     const search = overlay.locator('input[type="search"]').first()
     await search.fill('photos', { timeout: 12000 })
     await overlay.waitForTimeout(1000)
-    console.log('results drawer:', await deepClick(overlay, 'button[aria-label="Results"]'))
+    console.log('results drawer:', await deepClick(overlay, `button[aria-label="${LABELS.results}"]`))
     await overlay.waitForTimeout(600)
     await shot(overlay, 'screenshot-02-search.png', 'search + results drawer')
 
@@ -144,25 +169,54 @@ async function main() {
     await setPreview(preview, tableJson, `${DEMO_ORIGIN}/orders.json`)
     await preview.reload({ waitUntil: 'domcontentloaded' })
     await preview.waitForTimeout(1600)
-    console.log('table view:', await deepClick(preview, '.je-mode-group button', 'Table'))
+    console.log('table view:', await deepClick(preview, '.je-mode-group button', LABELS.table))
     await preview.waitForTimeout(900)
-    console.log('sort amount:', await preview.evaluate(() => {
-      function walk(root) {
-        for (const th of root.querySelectorAll('th')) {
-          if (th.textContent.trim().includes('amount')) { th.click(); return true }
-        }
-        for (const n of root.querySelectorAll('*')) {
-          if (n.shadowRoot && walk(n.shadowRoot)) return true
-        }
-        return false
-      }
-      return walk(document)
-    }))
+    await sortByAmount(preview)
     await preview.waitForTimeout(600)
     await shot(preview, 'screenshot-03-table.png', 'table view + sorting')
 
     console.log('settings:', await deepClick(preview, '.settings-wrap button'))
     await preview.waitForTimeout(600)
+    if (ZH) {
+      // The built output still has the pre-fix template binding, so the popover
+      // mounts with locale=en. Re-selecting 中文 in its own Language control
+      // refreshes the panel translator without rebuilding the extension.
+      console.log('refresh panel locale:', await preview.evaluate(() => {
+        function walk(root) {
+          for (const sel of root.querySelectorAll('select')) {
+            if (Array.from(sel.options).some((o) => o.value === 'zh')) {
+              sel.value = 'zh'
+              sel.dispatchEvent(new Event('change', { bubbles: true }))
+              return true
+            }
+          }
+          for (const n of root.querySelectorAll('*')) {
+            if (n.shadowRoot && walk(n.shadowRoot)) return true
+          }
+          return false
+        }
+        return walk(document)
+      }))
+      await preview.waitForTimeout(700)
+      // Only restore the table if that storage write actually reset the view;
+      // re-sorting an intact table would flip ascending order to descending.
+      const hasTable = await preview.evaluate(() => {
+        function walk(root) {
+          if (root.querySelector('table')) return true
+          for (const n of root.querySelectorAll('*')) {
+            if (n.shadowRoot && walk(n.shadowRoot)) return true
+          }
+          return false
+        }
+        return walk(document)
+      })
+      if (!hasTable) {
+        console.log('restore table:', await deepClick(preview, '.je-mode-group button', LABELS.table))
+        await preview.waitForTimeout(600)
+        await sortByAmount(preview)
+        await preview.waitForTimeout(500)
+      }
+    }
     await shot(preview, 'screenshot-04-settings.png', 'settings popover')
 
     // 5: image lightbox from the object-root showcase.
