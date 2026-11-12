@@ -120,6 +120,7 @@ Load the unpacked extension from `chrome://extensions` → Developer mode → `.
 - Required assets: a 128×128 store icon (`public/icon-128.png`), at least one and up to five 1280×800 screenshots, and a 440×280 small promo tile. A 1400×560 marquee image and a demo video are optional.
 - `demo/object-showcase.json` and `demo/table-orders.json` are sample documents for screenshots and manual testing (object root for tree / search / value insights, array root for table / sorting / CSV export). They are **not** bundled into the extension.
 - `scripts/capture-screenshots.cjs` regenerates the five 1280×800 PNGs in `store-assets/` with Playwright. It loads a staged copy of `.output/chrome-mv3` with the Chinese locales stripped, so `chrome.i18n` falls back to English and the real build output is untouched. The Chromium executable path is pinned to this machine's `chromium-1223`.
+- `scripts/generate-promo-images.cjs` renders `store-assets/promo-440x280.png` (required small promo tile) and `store-assets/marquee-1400x560.png` (optional marquee) from HTML/CSS with no image library. The marquee embeds screenshot 01, so regenerate the screenshots first.
 
 `docs/popup-config-integration.md` is a historical design document from the removed-popup refactor and no longer describes the current code.
 
