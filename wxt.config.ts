@@ -4,11 +4,12 @@ import { defineConfig } from 'wxt'
  * Store-listing notes (Chrome Web Store / Edge Add-ons):
  * - `version` is read from package.json (1.0.0); keep it in sync when publishing.
  * - `name` / `description` come from the locale files under public/_locales/
- *   (en, zh, zh_CN) via __MSG_extName__ / __MSG_extDescription__.
+ *   (en, zh, zh_CN, ja, fr, es, de) via __MSG_extName__ / __MSG_extDescription__.
  *   `description` (max 132 chars) is the short description shown in store search
  *   results — edit extDescription there, not in this file.
  * - `default_locale: 'en'`. zh_CN is Chrome's standard Simplified Chinese
  *   locale; the older bare `zh` folder is kept for backward compatibility.
+ *   ja / fr / es / de cover Japanese, French, Spanish and German.
  * - Dashboard-only fields: Homepage https://jsontoolbox.cc, support URL
  *   https://github.com/kbmjj123/json-browser-plugins/issues, privacy policy URL,
  *   category "Developer Tools", screenshots and promo images.

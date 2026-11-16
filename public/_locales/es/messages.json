@@ -1,0 +1,22 @@
+{
+  "extName": {
+    "message": "JSON Toolbox",
+    "description": "Nombre de la extensión que aparece en Chrome Web Store y chrome://extensions."
+  },
+  "extDescription": {
+    "message": "Convierte páginas JSON en un árbol y editor dividido, buscables y editables. Funciona localmente, sin cuenta ni seguimiento.",
+    "description": "Descripción corta de la tienda en los resultados de búsqueda. Máximo 132 caracteres; mantener el mismo significado que en los demás idiomas."
+  },
+  "viewerTitle": {
+    "message": "Visor de JSON Toolbox",
+    "description": "Barra de título del visor de JSON dentro de la página."
+  },
+  "viewerRaw": {
+    "message": "Sin formato",
+    "description": "Etiqueta del botón de cambio cuando está en modo Árbol."
+  },
+  "viewerTree": {
+    "message": "Árbol",
+    "description": "Etiqueta del botón de cambio cuando está en modo Sin formato."
+  }
+}

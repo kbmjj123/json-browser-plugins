@@ -1,0 +1,22 @@
+{
+  "extName": {
+    "message": "JSON Toolbox",
+    "description": "Erweiterungsname im Chrome Web Store und unter chrome://extensions."
+  },
+  "extDescription": {
+    "message": "Formatiert JSON-Seiten lokal in einen durchsuchbaren Baum und geteilten Editor — ohne Konto und ohne Tracking.",
+    "description": "Kurzbeschreibung im Store in den Suchergebnissen. Maximal 132 Zeichen; inhaltlich mit den anderen Sprachen abgestimmt."
+  },
+  "viewerTitle": {
+    "message": "JSON Toolbox Viewer",
+    "description": "Titelzeile des JSON-Viewers auf der Seite."
+  },
+  "viewerRaw": {
+    "message": "Rohdaten",
+    "description": "Beschriftung der Umschaltfläche im Baummodus."
+  },
+  "viewerTree": {
+    "message": "Baum",
+    "description": "Beschriftung der Umschaltfläche im Rohdatenmodus."
+  }
+}

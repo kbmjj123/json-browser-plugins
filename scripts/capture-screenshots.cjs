@@ -1,8 +1,11 @@
 /* Regenerate the five 1280x800 Chrome Web Store screenshots.
  *
- *   node scripts/capture-screenshots.cjs        # English -> store-assets/
- *   node scripts/capture-screenshots.cjs --zh   # Chinese -> store-assets/zh/
+ *   node scripts/capture-screenshots.cjs        # English  -> store-assets/
+ *   node scripts/capture-screenshots.cjs --zh   # Chinese  -> store-assets/zh/
  *   node scripts/capture-screenshots.cjs --ja   # Japanese -> store-assets/ja/
+ *   node scripts/capture-screenshots.cjs --fr   # French   -> store-assets/fr/
+ *   node scripts/capture-screenshots.cjs --es   # Spanish  -> store-assets/es/
+ *   node scripts/capture-screenshots.cjs --de   # German   -> store-assets/de/
  *
  * Requires a built .output/chrome-mv3 and a local Playwright + Chromium.
  * Notes for this machine: system Chrome 148 ignores --load-extension, and
@@ -13,18 +16,32 @@ const fs = require('node:fs')
 const path = require('node:path')
 const { chromium } = require('/Users/kbmjj123/.nvm/versions/node/v22.16.0/lib/node_modules/@playwright/cli/node_modules/playwright')
 
-const LANG = process.argv.includes('--ja') ? 'ja' : process.argv.includes('--zh') ? 'zh' : 'en'
+const LANG = process.argv.includes('--fr') ? 'fr'
+  : process.argv.includes('--es') ? 'es'
+  : process.argv.includes('--de') ? 'de'
+  : process.argv.includes('--ja') ? 'ja'
+  : process.argv.includes('--zh') ? 'zh' : 'en'
 const ROOT = path.resolve(__dirname, '..')
 const BUILD = path.join(ROOT, '.output/chrome-mv3')
 const EXT = '/tmp/json-toolbox-shot-extension'
 const OUT = path.join(ROOT, LANG === 'en' ? 'store-assets' : `store-assets/${LANG}`)
 const PROFILE = '/tmp/json-toolbox-shot-profile'
 const DEMO_ORIGIN = 'https://demo.jsontoolbox.cc'
-const BROWSER_LOCALE = LANG === 'ja' ? 'ja-JP' : LANG === 'zh' ? 'zh-CN' : 'en-US'
+const BROWSER_LOCALE = {
+  en: 'en-US', zh: 'zh-CN', ja: 'ja-JP', fr: 'fr-FR', es: 'es-ES', de: 'de-DE',
+}[LANG]
+const ENV_LOCALE = {
+  en: 'en_US.UTF-8', zh: 'zh_CN.UTF-8', ja: 'ja_JP.UTF-8',
+  fr: 'fr_FR.UTF-8', es: 'es_ES.UTF-8', de: 'de_DE.UTF-8',
+}[LANG]
 const LABELS = {
-  results: LANG === 'ja' ? '検索結果' : LANG === 'zh' ? '搜索结果' : 'Results',
-  table: LANG === 'ja' ? 'テーブル' : LANG === 'zh' ? '表格' : 'Table',
-}
+  en: { results: 'Results', table: 'Table' },
+  zh: { results: '搜索结果', table: '表格' },
+  ja: { results: '検索結果', table: 'テーブル' },
+  fr: { results: 'Résultats', table: 'Tableau' },
+  es: { results: 'Resultados', table: 'Tabla' },
+  de: { results: 'Ergebnisse', table: 'Tabelle' },
+}[LANG]
 
 const objectJson = fs.readFileSync(path.join(ROOT, 'demo/object-showcase.json'), 'utf8')
 const tableJson = fs.readFileSync(path.join(ROOT, 'demo/table-orders.json'), 'utf8')
@@ -34,35 +51,37 @@ fs.mkdirSync(OUT, { recursive: true })
 fs.rmSync(PROFILE, { recursive: true, force: true })
 // chrome.i18n follows the browser UI language, not Playwright's `locale`.
 // English shots strip every non-English locale so the manifest falls back to
-// default_locale (en); Chinese/Japanese shots keep all localizations.
+// default_locale (en); every non-English shot keeps all localizations.
 fs.rmSync(EXT, { recursive: true, force: true })
 fs.cpSync(BUILD, EXT, { recursive: true })
 if (LANG === 'en') {
-  for (const name of ['zh_CN', 'zh', 'ja']) {
+  for (const name of ['zh_CN', 'zh', 'ja', 'fr', 'es', 'de']) {
     fs.rmSync(path.join(EXT, '_locales', name), { recursive: true, force: true })
   }
 }
 
-/**
- * The existing build output predates src/editor/i18n/ja.ts, so its translator
- * would fall back to English for locale 'ja'. Patch ONLY the staged copy: swap
- * the bundled English dictionary values for the Japanese ones, scoped to the
- * `const X={…}` object so unrelated keys elsewhere are untouched.
- */
-function injectJapaneseDictionary(stageDir) {
-  const source = fs.readFileSync(path.join(ROOT, 'src/editor/i18n/ja.ts'), 'utf8')
-  const pairs = [...source.matchAll(/^\s{2}(\w+):\s*'((?:[^'\\]|\\.)*)'/gm)]
-    .map(([, key, value]) => [key, value.replace(/\\'/g, "'")])
-  if (pairs.length < 100) throw new Error(`Only parsed ${pairs.length} Japanese messages`)
-
-  const files = [
+function stagedJsFiles(stageDir) {
+  return [
     path.join(stageDir, 'content-scripts/content.js'),
     ...fs.readdirSync(path.join(stageDir, 'chunks'))
       .filter((name) => name.endsWith('.js'))
       .map((name) => path.join(stageDir, 'chunks', name)),
   ]
+}
 
-  for (const file of files) {
+/**
+ * The built output predates src/editor/i18n/ja.ts, fr.ts, es.ts and de.ts, so
+ * its translator would fall back to English for those locales. Patch ONLY the
+ * staged copy: swap the bundled English dictionary values for the target ones,
+ * scoped to the `const X={…}` object so unrelated keys are untouched.
+ */
+function injectDictionary(stageDir, lang) {
+  const source = fs.readFileSync(path.join(ROOT, `src/editor/i18n/${lang}.ts`), 'utf8')
+  const pairs = [...source.matchAll(/^\s{2}(\w+):\s*'((?:[^'\\]|\\.)*)'/gm)]
+    .map(([, key, value]) => [key, value.replace(/\\'/g, "'")])
+  if (pairs.length < 100) throw new Error(`Only parsed ${pairs.length} ${lang} messages`)
+
+  for (const file of stagedJsFiles(stageDir)) {
     if (!fs.existsSync(file)) continue
     const code = fs.readFileSync(file, 'utf8')
     const marker = code.indexOf('={viewerTitle:"')
@@ -97,17 +116,36 @@ function injectJapaneseDictionary(stageDir) {
         prefix + value.replace(/\\/g, '\\\\').replace(/"/g, '\\"') + suffix)
     }
     fs.writeFileSync(file, code.slice(0, open) + dict + code.slice(end + 1))
-    console.log(`injected ${pairs.length} ja strings into ${path.basename(file)}`)
+    console.log(`injected ${pairs.length} ${lang} strings into ${path.basename(file)}`)
   }
 }
-if (LANG === 'ja') injectJapaneseDictionary(EXT)
+
+/** The built settings popover only lists en/zh/ja; add the new options to the
+ * staged chunk so the Language control can refresh its translator. */
+function injectLocaleOptions(stageDir) {
+  const marker = 'w("option",{value:"ja"},"\\u65E5\\u672C\\u8A9E",-1)'
+  const extra =
+    ',w("option",{value:"fr"},"Français",-1)' +
+    ',w("option",{value:"es"},"Español",-1)' +
+    ',w("option",{value:"de"},"Deutsch",-1)'
+  for (const file of stagedJsFiles(stageDir)) {
+    if (!fs.existsSync(file)) continue
+    const code = fs.readFileSync(file, 'utf8')
+    if (!code.includes(marker)) continue
+    fs.writeFileSync(file, code.replace(marker, marker + extra))
+    console.log(`injected fr/es/de options into ${path.basename(file)}`)
+  }
+}
+
+if (LANG !== 'en' && LANG !== 'zh') injectDictionary(EXT, LANG)
+if (LANG === 'fr' || LANG === 'es' || LANG === 'de') injectLocaleOptions(EXT)
 
 fs.mkdirSync(path.join(PROFILE, 'Default'), { recursive: true })
 fs.writeFileSync(
   path.join(PROFILE, 'Default', 'Preferences'),
   JSON.stringify({ intl: { app_locale: BROWSER_LOCALE } }),
 )
-process.env.LANG = LANG === 'ja' ? 'ja_JP.UTF-8' : LANG === 'zh' ? 'zh_CN.UTF-8' : 'en_US.UTF-8'
+process.env.LANG = ENV_LOCALE
 
 // Click an element even when it lives inside nested open shadow roots.
 async function deepClick(page, selector, text) {

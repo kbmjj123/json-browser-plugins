@@ -6,7 +6,7 @@ import { browser } from 'wxt/browser'
 
 export type IndentOption = 2 | 4 | 'tab'
 export type ThemeOption = 'light' | 'dark' | 'auto'
-export type AppLocale = 'en' | 'zh' | 'ja'
+export type AppLocale = 'en' | 'zh' | 'ja' | 'fr' | 'es' | 'de'
 export type EditorView = 'both' | 'editor' | 'tree' | 'table'
 
 export interface ExtensionOptions {
@@ -32,6 +32,9 @@ function detectLocale(): AppLocale {
     const ui = browser.i18n.getUILanguage().toLowerCase()
     if (ui.startsWith('zh')) return 'zh'
     if (ui.startsWith('ja')) return 'ja'
+    if (ui.startsWith('fr')) return 'fr'
+    if (ui.startsWith('es')) return 'es'
+    if (ui.startsWith('de')) return 'de'
     return 'en'
   } catch {
     return 'en'

@@ -1,13 +1,16 @@
 import { en, type MessageKey, type Messages } from './en'
 import { zh } from './zh'
 import { ja } from './ja'
+import { fr } from './fr'
+import { es } from './es'
+import { de } from './de'
 
 export * from './en'
-export { zh, ja }
+export { zh, ja, fr, es, de }
 
-export type Locale = 'en' | 'zh' | 'ja'
+export type Locale = 'en' | 'zh' | 'ja' | 'fr' | 'es' | 'de'
 
-const dictionaries: Record<Locale, Messages> = { en, zh, ja }
+const dictionaries: Record<Locale, Messages> = { en, zh, ja, fr, es, de }
 
 export const defaultLocale: Locale = 'en'
 

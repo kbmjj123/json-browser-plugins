@@ -1,0 +1,22 @@
+{
+  "extName": {
+    "message": "JSON Toolbox",
+    "description": "Nom de l’extension affiché dans le Chrome Web Store et chrome://extensions."
+  },
+  "extDescription": {
+    "message": "Met en forme les pages JSON en arborescence et éditeur fractionné, localement, sans compte ni suivi.",
+    "description": "Description courte du store dans les résultats de recherche. 132 caractères maximum ; garder le sens aligné avec les autres langues."
+  },
+  "viewerTitle": {
+    "message": "Visionneuse JSON Toolbox",
+    "description": "Barre de titre de la visionneuse JSON intégrée à la page."
+  },
+  "viewerRaw": {
+    "message": "Brut",
+    "description": "Libellé du bouton de bascule en mode arborescence."
+  },
+  "viewerTree": {
+    "message": "Arborescence",
+    "description": "Libellé du bouton de bascule en mode brut."
+  }
+}
