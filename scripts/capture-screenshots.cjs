@@ -2,51 +2,112 @@
  *
  *   node scripts/capture-screenshots.cjs        # English -> store-assets/
  *   node scripts/capture-screenshots.cjs --zh   # Chinese -> store-assets/zh/
+ *   node scripts/capture-screenshots.cjs --ja   # Japanese -> store-assets/ja/
  *
  * Requires a built .output/chrome-mv3 and a local Playwright + Chromium.
  * Notes for this machine: system Chrome 148 ignores --load-extension, and
  * Playwright passes --disable-extensions by default, so we use the bundled
- * chromium-1223 and strip that switch.
+ * chromium-1223 and strip that switch. The real .output/ is never modified.
  */
 const fs = require('node:fs')
 const path = require('node:path')
 const { chromium } = require('/Users/kbmjj123/.nvm/versions/node/v22.16.0/lib/node_modules/@playwright/cli/node_modules/playwright')
 
-const ZH = process.argv.includes('--zh')
+const LANG = process.argv.includes('--ja') ? 'ja' : process.argv.includes('--zh') ? 'zh' : 'en'
 const ROOT = path.resolve(__dirname, '..')
 const BUILD = path.join(ROOT, '.output/chrome-mv3')
 const EXT = '/tmp/json-toolbox-shot-extension'
-const OUT = path.join(ROOT, ZH ? 'store-assets/zh' : 'store-assets')
+const OUT = path.join(ROOT, LANG === 'en' ? 'store-assets' : `store-assets/${LANG}`)
 const PROFILE = '/tmp/json-toolbox-shot-profile'
 const DEMO_ORIGIN = 'https://demo.jsontoolbox.cc'
-const BROWSER_LOCALE = ZH ? 'zh-CN' : 'en-US'
+const BROWSER_LOCALE = LANG === 'ja' ? 'ja-JP' : LANG === 'zh' ? 'zh-CN' : 'en-US'
 const LABELS = {
-  results: ZH ? '搜索结果' : 'Results',
-  table: ZH ? '表格' : 'Table',
+  results: LANG === 'ja' ? '検索結果' : LANG === 'zh' ? '搜索结果' : 'Results',
+  table: LANG === 'ja' ? 'テーブル' : LANG === 'zh' ? '表格' : 'Table',
 }
 
 const objectJson = fs.readFileSync(path.join(ROOT, 'demo/object-showcase.json'), 'utf8')
 const tableJson = fs.readFileSync(path.join(ROOT, 'demo/table-orders.json'), 'utf8')
-const OPTIONS = { indent: 2, theme: 'light', locale: ZH ? 'zh' : 'en', view: 'both', auto: true, imagePreview: true }
+const OPTIONS = { indent: 2, theme: 'light', locale: LANG, view: 'both', auto: true, imagePreview: true }
 
 fs.mkdirSync(OUT, { recursive: true })
 fs.rmSync(PROFILE, { recursive: true, force: true })
 // chrome.i18n follows the browser UI language, not Playwright's `locale`.
-// For English screenshots, strip the Chinese locales from a staged copy so it
-// falls back to default_locale (en); for Chinese screenshots keep them. The
-// real .output/ directory is never modified.
+// English shots strip every non-English locale so the manifest falls back to
+// default_locale (en); Chinese/Japanese shots keep all localizations.
 fs.rmSync(EXT, { recursive: true, force: true })
 fs.cpSync(BUILD, EXT, { recursive: true })
-if (!ZH) {
-  fs.rmSync(path.join(EXT, '_locales', 'zh_CN'), { recursive: true, force: true })
-  fs.rmSync(path.join(EXT, '_locales', 'zh'), { recursive: true, force: true })
+if (LANG === 'en') {
+  for (const name of ['zh_CN', 'zh', 'ja']) {
+    fs.rmSync(path.join(EXT, '_locales', name), { recursive: true, force: true })
+  }
 }
+
+/**
+ * The existing build output predates src/editor/i18n/ja.ts, so its translator
+ * would fall back to English for locale 'ja'. Patch ONLY the staged copy: swap
+ * the bundled English dictionary values for the Japanese ones, scoped to the
+ * `const X={…}` object so unrelated keys elsewhere are untouched.
+ */
+function injectJapaneseDictionary(stageDir) {
+  const source = fs.readFileSync(path.join(ROOT, 'src/editor/i18n/ja.ts'), 'utf8')
+  const pairs = [...source.matchAll(/^\s{2}(\w+):\s*'((?:[^'\\]|\\.)*)'/gm)]
+    .map(([, key, value]) => [key, value.replace(/\\'/g, "'")])
+  if (pairs.length < 100) throw new Error(`Only parsed ${pairs.length} Japanese messages`)
+
+  const files = [
+    path.join(stageDir, 'content-scripts/content.js'),
+    ...fs.readdirSync(path.join(stageDir, 'chunks'))
+      .filter((name) => name.endsWith('.js'))
+      .map((name) => path.join(stageDir, 'chunks', name)),
+  ]
+
+  for (const file of files) {
+    if (!fs.existsSync(file)) continue
+    const code = fs.readFileSync(file, 'utf8')
+    const marker = code.indexOf('={viewerTitle:"')
+    if (marker === -1) continue
+    const open = code.indexOf('{', marker)
+
+    let depth = 0
+    let inString = false
+    let escaped = false
+    let end = -1
+    for (let i = open; i < code.length; i++) {
+      const c = code[i]
+      if (inString) {
+        if (escaped) { escaped = false; continue }
+        if (c === '\\') { escaped = true; continue }
+        if (c === '"') inString = false
+        continue
+      }
+      if (c === '"') { inString = true; continue }
+      if (c === '{') depth++
+      else if (c === '}') {
+        depth--
+        if (depth === 0) { end = i; break }
+      }
+    }
+    if (end === -1) throw new Error(`Dictionary object not found in ${file}`)
+
+    let dict = code.slice(open, end + 1)
+    for (const [key, value] of pairs) {
+      const re = new RegExp(`(\\b${key}:")((?:[^"\\\\]|\\\\.)*)(")`, 'g')
+      dict = dict.replace(re, (_match, prefix, _old, suffix) =>
+        prefix + value.replace(/\\/g, '\\\\').replace(/"/g, '\\"') + suffix)
+    }
+    fs.writeFileSync(file, code.slice(0, open) + dict + code.slice(end + 1))
+    console.log(`injected ${pairs.length} ja strings into ${path.basename(file)}`)
+  }
+}
+if (LANG === 'ja') injectJapaneseDictionary(EXT)
+
 fs.mkdirSync(path.join(PROFILE, 'Default'), { recursive: true })
 fs.writeFileSync(
   path.join(PROFILE, 'Default', 'Preferences'),
   JSON.stringify({ intl: { app_locale: BROWSER_LOCALE } }),
 )
-process.env.LANG = ZH ? 'zh_CN.UTF-8' : 'en_US.UTF-8'
+process.env.LANG = LANG === 'ja' ? 'ja_JP.UTF-8' : LANG === 'zh' ? 'zh_CN.UTF-8' : 'en_US.UTF-8'
 
 // Click an element even when it lives inside nested open shadow roots.
 async function deepClick(page, selector, text) {
@@ -77,7 +138,7 @@ async function shot(page, name, label) {
   await page.waitForTimeout(600)
   await page.screenshot({ path: path.join(OUT, name), animations: 'disabled' })
   const size = await page.evaluate(() => `${innerWidth}x${innerHeight}`)
-  console.log(`OK   [${ZH ? 'zh' : 'en'}] ${name}  viewport=${size}  ${label}`)
+  console.log(`OK   [${LANG}] ${name}  viewport=${size}  ${label}`)
 }
 
 async function sortByAmount(page) {
@@ -177,15 +238,15 @@ async function main() {
 
     console.log('settings:', await deepClick(preview, '.settings-wrap button'))
     await preview.waitForTimeout(600)
-    if (ZH) {
+    if (LANG !== 'en') {
       // The built output still has the pre-fix template binding, so the popover
-      // mounts with locale=en. Re-selecting 中文 in its own Language control
-      // refreshes the panel translator without rebuilding the extension.
-      console.log('refresh panel locale:', await preview.evaluate(() => {
+      // mounts with locale=en. Re-selecting the target language in its own
+      // Language control refreshes the panel translator without a rebuild.
+      console.log('refresh panel locale:', await preview.evaluate((target) => {
         function walk(root) {
           for (const sel of root.querySelectorAll('select')) {
-            if (Array.from(sel.options).some((o) => o.value === 'zh')) {
-              sel.value = 'zh'
+            if (Array.from(sel.options).some((o) => o.value === target)) {
+              sel.value = target
               sel.dispatchEvent(new Event('change', { bubbles: true }))
               return true
             }
@@ -196,7 +257,7 @@ async function main() {
           return false
         }
         return walk(document)
-      }))
+      }, LANG))
       await preview.waitForTimeout(700)
       // Only restore the table if that storage write actually reset the view;
       // re-sorting an intact table would flip ascending order to descending.
