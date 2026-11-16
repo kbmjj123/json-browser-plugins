@@ -1,0 +1,29 @@
+JSON Toolbox turns the raw, unreadable JSON that Chrome shows as plain <pre> text into a proper viewer — automatically, on any page, with nothing to click.
+
+HOW IT WORKS
+Install it and open any URL that returns JSON. If the whole page is a single valid JSON document, a full-screen viewer replaces the raw text. On every other page (blogs, docs, GitHub, dashboards) the extension does nothing — no popup, no notification, no DOM changes. Click the toolbar icon any time to reopen your most recently previewed JSON in a dedicated tab, or paste JSON there and work on it from scratch.
+
+WHAT YOU GET
+• Split editor + tree: CodeMirror 6 syntax highlighting, line numbers, undo/redo, editable nodes (rename, change type, add/remove/move, bulk set values, 100-step history).
+• Table view for arrays of objects: show/hide columns, sort by clicking a header, export to CSV.
+• Search: keys, values, paths, everything, or JSONPath. Result drawer, cyclic previous/next, Enter / Shift+Enter, Esc to clear, Ctrl/Cmd+F. Search is debounced and capped, and long trees render progressively as you scroll.
+• Value insights: colors, timestamps, JWTs, base64, UUIDs, IPs, markdown, URLs and emails; image / audio / video / PDF previews with a keyboard-navigable lightbox, single-image and bulk download.
+• Raw / Tree toggle, copy value / path / JSONPath / whole document, download as a file, status bar with error line and column.
+• Works with local .json files too (Chrome requires "Allow access to file URLs" to be enabled on the extension's details page).
+
+SETTINGS
+The ⚙ panel lets you choose theme (light / dark / auto), indentation (2 / 4 / Tab), default view, language (English / 中文 / 日本語 / Français / Español / Deutsch), media previews, and the auto-beautify master switch. Changes apply instantly across open viewers and are saved on your device.
+
+PRIVACY
+All parsing, editing, formatting and search happen locally in your browser. There is no account, no telemetry, no analytics, no remote scripts or fonts, and no server of ours that receives your JSON. Your settings and the last previewed JSON text are stored only in browser.storage.local on this device and disappear when the extension is removed.
+
+One thing to be aware of: when "Preview images & media" is on (the default), URLs found inside your JSON are loaded by the browser as <img>, <audio>, <video> or <iframe>, so those requests go to the servers hosting those URLs. "Download all" also fetches those URLs. Turn the switch off to disable every third-party request; inline data:/base64 images never make a request. Links to jsontoolbox.cc, the support link and the feedback link only open when you click them.
+
+PERMISSIONS
+• storage — saves your settings and the most recently previewed JSON locally.
+• Content script on all sites — Chrome has no API to inject based on a response's content type, so automatic detection requires a broad match. Our script only reads the existing <pre> text, parses it in memory and renders into a shadow root; on non-JSON pages it exits without touching the page. No host_permissions are requested.
+• file:///* — same detection for local .json files; requires your manual opt-in in Chrome.
+
+Documents above 2 MiB are left untouched. The extension deliberately skips jsontoolbox.cc and www.jsontoolbox.cc so the site's own tools are unaffected.
+
+Open source (MIT): https://github.com/kbmjj123/json-browser-plugins · More JSON tools: https://jsontoolbox.cc

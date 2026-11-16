@@ -1,0 +1,29 @@
+JSON Toolbox convierte el JSON sin formato e ilegible que Chrome muestra como texto <pre> en un visor real: automáticamente, en cualquier página y sin tener que hacer clic.
+
+CÓMO FUNCIONA
+Instala la extensión y abre cualquier URL que devuelva JSON. Si toda la página es un único documento JSON válido, un visor a pantalla completa sustituye el texto sin formato. En cualquier otra página (blogs, documentación, GitHub, paneles), la extensión no hace nada: sin popup, sin notificaciones y sin cambios en el DOM. Haz clic en el icono de la barra de herramientas cuando quieras para reabrir el JSON previsualizado más recientemente en una pestaña dedicada, o pega JSON allí para empezar de cero.
+
+QUÉ OBTIENES
+• Editor dividido + árbol: resaltado de sintaxis de CodeMirror 6, números de línea, deshacer/rehacer, nodos editables (renombrar, cambiar tipo, añadir/eliminar/mover, asignar valores en bloque, historial de 100 pasos).
+• Vista de tabla para listas de objetos: mostrar/ocultar columnas, ordenar haciendo clic en una cabecera, exportar a CSV.
+• Búsqueda: claves, valores, rutas, todo o JSONPath. Panel de resultados, anterior/siguiente en bucle, Entrar / Mayús+Entrar, Esc para limpiar, Ctrl/Cmd+F. La búsqueda tiene retardo y límite, y los árboles largos se renderizan progresivamente al desplazarte.
+• Análisis de valores: colores, marcas de tiempo, JWT, base64, UUID, IP, Markdown, URL y correos; vistas previas de imagen / audio / vídeo / PDF con visor de imágenes navegable por teclado, descarga individual y en bloque.
+• Conmutador Raw / Árbol, copiar valor / ruta / JSONPath / documento completo, descargar como archivo, barra de estado con la línea y columna del error.
+• Funciona también con archivos .json locales (Chrome exige activar «Permitir el acceso a URL de archivos» en la página de detalles de la extensión).
+
+AJUSTES
+El panel ⚙ permite elegir tema (claro / oscuro / automático), sangría (2 / 4 / Tabulador), vista predeterminada, idioma (English / 中文 / 日本語 / Français / Español / Deutsch), vistas previas multimedia y el interruptor maestro de formato automático. Los cambios se aplican al instante en los visores abiertos y se guardan en tu dispositivo.
+
+PRIVACIDAD
+Todo el análisis, la edición, el formato y la búsqueda ocurren localmente en tu navegador. No hay cuenta, telemetría, analítica, scripts ni fuentes remotas, y ningún servidor nuestro recibe tu JSON. Tus ajustes y el último JSON previsualizado se guardan solo en browser.storage.local de este dispositivo y desaparecen al eliminar la extensión.
+
+Ten en cuenta que, cuando «Previsualizar imágenes y multimedia» está activado (por defecto), las URL encontradas en tu JSON se cargan en el navegador como <img>, <audio>, <video> o <iframe>, por lo que esas peticiones van a los servidores que alojan esas URL. «Descargar todo» también obtiene esas URL. Desactiva el interruptor para bloquear todas las peticiones a terceros; las imágenes en línea data:/base64 nunca hacen ninguna petición. Los enlaces a jsontoolbox.cc, el enlace de soporte y el enlace de comentarios solo se abren cuando haces clic en ellos.
+
+PERMISOS
+• storage — guarda localmente tus ajustes y el JSON previsualizado más reciente.
+• Script de contenido en todos los sitios — Chrome no tiene una API para inyectar según el tipo de contenido de la respuesta, así que la detección automática necesita una coincidencia amplia. Nuestro script solo lee el texto <pre> existente, lo analiza en memoria y lo renderiza en un shadow root; en páginas que no son JSON, sale sin tocar la página. No se solicitan host_permissions.
+• file:///* — la misma detección para archivos .json locales; requiere tu autorización manual en Chrome.
+
+Los documentos de más de 2 MiB se omiten. La extensión evita deliberadamente jsontoolbox.cc y www.jsontoolbox.cc para no afectar a las herramientas propias del sitio.
+
+Código abierto (MIT): https://github.com/kbmjj123/json-browser-plugins · Más herramientas JSON: https://jsontoolbox.cc
