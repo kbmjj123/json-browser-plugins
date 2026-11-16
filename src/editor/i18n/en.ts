@@ -3,6 +3,8 @@
  * Keys are snake_case; `{name}` is a placeholder filled by `t()`.
  */
 export const en = {
+  viewerTitle: 'JSON Toolbox viewer',
+  previewTitle: 'JSON Preview',
   valid: 'Valid JSON',
   invalid: 'Invalid JSON',
   empty: 'Nothing to show yet — paste JSON on the left.',
@@ -119,6 +121,7 @@ export const en = {
   auto_beautify: 'Auto-beautify pages',
   privacy: 'No data is uploaded. Settings and the last preview are stored only on this device; media previews may load URLs found in your JSON.',
   visit_site: 'Visit jsontoolbox.cc',
+  feedback: 'Send feedback',
 } as const
 
 export type MessageKey = keyof typeof en

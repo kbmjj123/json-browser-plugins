@@ -52,6 +52,12 @@ export interface CreateCodeMirrorOptions {
   /** Refuse pastes larger than this many bytes. `0` disables the check. */
   maxBytes?: number
   /**
+   * Optional reformatting hook for a pasted JSON document. Return replacement
+   * text, or `undefined` to keep CodeMirror's default paste behaviour. Called
+   * only after the oversized-paste guard and only for whole `{…}` / `[…]` text.
+   */
+  formatPasted?: (text: string) => string | undefined
+  /**
    * Extra CodeMirror extensions appended after the built-ins. Use this for
    * host-specific behaviour (custom decorations, themes) without forking the
    * editor. Wrap in `Prec.high(...)` to override the built-in theme.
@@ -133,6 +139,7 @@ export function createCodeMirror(options: CreateCodeMirrorOptions): CodeMirrorHa
     indent = 2,
     root,
     maxBytes = 0,
+    formatPasted,
     extensions: extraExtensions = [],
     onDocChange,
     onOversizedPaste,
@@ -169,13 +176,29 @@ export function createCodeMirror(options: CreateCodeMirrorOptions): CodeMirrorHa
     }),
     EditorView.domEventHandlers({
       paste(event) {
-        if (!maxBytes) return false
         const text = (event as ClipboardEvent).clipboardData?.getData('text') ?? ''
         if (!text) return false
         const bytes = byteLength(text)
-        if (bytes <= maxBytes) return false
+        if (maxBytes && bytes > maxBytes) {
+          event.preventDefault()
+          onOversizedPaste?.({ bytes, text })
+          return true
+        }
+        if (!formatPasted) return false
+        const trimmed = text.trim()
+        // Only reformat a whole pasted document, never a fragment inserted
+        // mid-edit. Invalid JSON keeps the default paste so the existing error
+        // indicator still explains what went wrong.
+        if (!/^[{[]/.test(trimmed) || !/[}\]]$/.test(trimmed)) return false
+        const formatted = formatPasted(text)
+        if (formatted === undefined || formatted === text) return false
         event.preventDefault()
-        onOversizedPaste?.({ bytes, text })
+        const { main } = view.state.selection
+        view.dispatch({
+          changes: { from: main.from, to: main.to, insert: formatted },
+          selection: { anchor: main.from + formatted.length },
+          scrollIntoView: true,
+        })
         return true
       },
       mousemove(event) {

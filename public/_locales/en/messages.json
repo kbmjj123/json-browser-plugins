@@ -5,7 +5,7 @@
   },
   "extDescription": {
     "message": "Auto-beautify JSON pages into a searchable, editable tree and split editor. Runs locally, no account, no tracking.",
-    "description": "Store short description shown in search results. Max 132 chars; keep in sync with public/_locales/zh_CN/messages.json."
+    "description": "Store short description shown in search results. Max 132 chars; keep in sync with the other locales."
   },
   "viewerTitle": {
     "message": "JSON Toolbox viewer",

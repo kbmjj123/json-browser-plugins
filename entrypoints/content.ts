@@ -4,6 +4,7 @@ import { analyzeJson } from '../src/editor/core/parse'
 import { detectAndMount, type JsonDocument, type ViewerController, type ViewerLabels } from '../utils/detectAndMount'
 import { getOptions, STORAGE_KEY, type ExtensionOptions } from '../utils/options'
 import { MAX_AUTO_JSON_BYTES, OWN_HOSTS } from '../utils/constants'
+import { createTranslator } from '../src/editor/i18n'
 
 /**
  * Dev-only diagnostics. Detection rejections are intentionally silent in
@@ -100,13 +101,15 @@ function findWholePageJson(): JsonDocument | null {
   return { text: trimmed, source: pre }
 }
 
-/** Literal keys only — wxt prepare generates a literal-union getMessage type. */
-function viewerLabels(): ViewerLabels {
+/** Labels follow the user's language setting (not the browser UI language), so
+ *  the title bar relabels together with the editor when the user switches. */
+function viewerLabels(locale: ExtensionOptions['locale']): ViewerLabels {
+  const t = createTranslator(locale)
   return {
-    title: browser.i18n.getMessage('viewerTitle'),
-    raw: browser.i18n.getMessage('viewerRaw'),
-    tree: browser.i18n.getMessage('viewerTree'),
-    site: browser.i18n.getMessage('extName'),
+    title: t('viewerTitle'),
+    raw: t('raw'),
+    tree: t('tree'),
+    site: 'JSON Toolbox',
   }
 }
 
@@ -165,7 +168,7 @@ export default defineContentScript({
       }
       if (controller) {
         diag('ensure: applying config to existing viewer')
-        controller.apply(opts, viewerLabels())
+        controller.apply(opts, viewerLabels(opts.locale))
         return
       }
 
@@ -173,7 +176,7 @@ export default defineContentScript({
       if (!detected) return // rejection reason already logged by reject()
 
       diag('ensure: mounting viewer')
-      controller = detectAndMount(detected, opts, viewerLabels())
+      controller = detectAndMount(detected, opts, viewerLabels(opts.locale))
       void saveLastPreview(detected.text, location.href)
       // Keep the stored preview in sync with live edits in the left pane.
       controller.onChange((value) => saveLastPreviewDebounced(value))

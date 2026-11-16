@@ -1,0 +1,22 @@
+{
+  "extName": {
+    "message": "JSON Toolbox",
+    "description": "Chrome ウェブストアと chrome://extensions に表示される拡張機能名。"
+  },
+  "extDescription": {
+    "message": "JSON ページを検索・編集できるツリーと分割エディターに自動整形。ローカルで動作し、アカウントやトラッキングは不要です。",
+    "description": "検索結果に表示されるストアの短い説明。132 文字以内。他のロケールと内容を揃えること。"
+  },
+  "viewerTitle": {
+    "message": "JSON Toolbox ビューア",
+    "description": "ページ内 JSON ビューアのタイトルバー。"
+  },
+  "viewerRaw": {
+    "message": "生データ",
+    "description": "ツリーモード時に表示される切り替えボタンのラベル。"
+  },
+  "viewerTree": {
+    "message": "ツリー",
+    "description": "生データモード時に表示される切り替えボタンのラベル。"
+  }
+}

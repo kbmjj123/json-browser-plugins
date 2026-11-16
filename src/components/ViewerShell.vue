@@ -8,7 +8,7 @@ import {
 import { editorCss } from '../editor/editorCss'
 import { resolveDark } from '../../utils/options'
 import { injectStylesIntoRoot } from '../../utils/injectShadowStyles'
-import { createTranslator, type Locale } from '../editor/i18n'
+import { createTranslator } from '../editor/i18n'
 import viewerShellCss from './ViewerShell.css?inline'
 import ViewerSettings from './ViewerSettings.vue'
 
@@ -32,6 +32,9 @@ const props = defineProps<{
   /** Hide the auto-beautify toggle inside the settings panel. Used by the page
    *  overlay, where turning auto off would destroy the overlay itself. */
   hideAuto?: boolean
+  /** Hide the Raw/Tree toggle. Used by the last-preview tab: its content is a
+   *  user workspace, not a JSON response, so "Raw" has no defined meaning. */
+  hideRawToggle?: boolean
 }>()
 
 // The icon is inlined as a data URI by the hosts, but on a strict-CSP page even a
@@ -61,9 +64,7 @@ const showSettings = ref(false)
 
 // Raw/tree toggle copy is driven by the user-chosen locale (the same source the
 // editor and settings panel use), so switching language relabels it instantly.
-const t = computed(() =>
-  createTranslator((opts.value.locale === 'zh' ? 'zh' : 'en') as Locale),
-)
+const t = computed(() => createTranslator(opts.value.locale ?? 'en'))
 
 const toggleLabel = computed(() =>
   mode.value === 'tree' ? t.value('raw') : t.value('tree'),
@@ -192,7 +193,7 @@ defineExpose({
       </svg>
       <span class="title">{{ labels.title }}</span>
 
-      <!-- Always-visible right side: settings + raw/tree toggle + site + support. -->
+      <!-- Always-visible right side: settings + optional raw/tree toggle + site + support. -->
       <div class="topright">
         <div class="settings-wrap" ref="settingsWrapEl">
           <button
@@ -206,14 +207,14 @@ defineExpose({
           </button>
           <div v-if="showSettings" class="settings-pop">
             <ViewerSettings
-              :locale="(opts.locale === 'zh' ? 'zh' : 'en') as 'en' | 'zh'"
+              :locale="opts.locale ?? 'en'"
               :hide-auto="hideAuto"
               :site-url="siteUrl"
               @close="showSettings = false"
             />
           </div>
         </div>
-        <button class="btn toggle" type="button" @click="toggle">
+        <button v-if="!hideRawToggle" class="btn toggle" type="button" @click="toggle">
           {{ toggleLabel }}
         </button>
         <a class="btn site" :href="siteUrl" target="_blank" rel="noopener">

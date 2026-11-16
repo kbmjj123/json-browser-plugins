@@ -94,3 +94,8 @@
 .vs-site:hover {
   text-decoration: underline;
 }
+.vs-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+}

@@ -6,7 +6,7 @@ import { browser } from 'wxt/browser'
 
 export type IndentOption = 2 | 4 | 'tab'
 export type ThemeOption = 'light' | 'dark' | 'auto'
-export type AppLocale = 'en' | 'zh'
+export type AppLocale = 'en' | 'zh' | 'ja'
 export type EditorView = 'both' | 'editor' | 'tree' | 'table'
 
 export interface ExtensionOptions {
@@ -25,6 +25,19 @@ export interface ExtensionOptions {
 
 export const STORAGE_KEY = 'jsontb:options:v1'
 
+/** First-run language: follow the browser UI language. Once anything has been
+ *  saved, that explicit choice wins and is never overwritten. */
+function detectLocale(): AppLocale {
+  try {
+    const ui = browser.i18n.getUILanguage().toLowerCase()
+    if (ui.startsWith('zh')) return 'zh'
+    if (ui.startsWith('ja')) return 'ja'
+    return 'en'
+  } catch {
+    return 'en'
+  }
+}
+
 // `getOptions()` merges DEFAULT_OPTIONS, so existing installs silently gain
 // `auto: true` without a storage-key bump.
 export const DEFAULT_OPTIONS: ExtensionOptions = {
@@ -40,9 +53,11 @@ export async function getOptions(): Promise<ExtensionOptions> {
   try {
     const stored = await browser.storage.local.get(STORAGE_KEY)
     const raw = stored?.[STORAGE_KEY] as Partial<ExtensionOptions> | undefined
-    return { ...DEFAULT_OPTIONS, ...(raw ?? {}) }
+    // No stored value = fresh install; infer once from the browser UI language.
+    const defaults = raw ? DEFAULT_OPTIONS : { ...DEFAULT_OPTIONS, locale: detectLocale() }
+    return { ...defaults, ...(raw ?? {}) }
   } catch {
-    return { ...DEFAULT_OPTIONS }
+    return { ...DEFAULT_OPTIONS, locale: detectLocale() }
   }
 }
 

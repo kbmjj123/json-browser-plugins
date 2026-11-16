@@ -15,7 +15,7 @@ The extension ships no JSON tools of its own — the tools live on the site.
 | Surface | Trigger | Behaviour |
 |---|---|---|
 | **On-page overlay** | Open any URL whose whole document is JSON | A full-screen viewer in a shadow root covers the raw `<pre>`; the original page is left intact underneath |
-| **Last-preview tab** | Click the toolbar icon | `action.onClicked` opens `lastPreview.html` with the most recently previewed JSON, or an empty editor you can paste into. There is intentionally **no action popup** (a popup suppresses `onClicked`) |
+| **Last-preview tab** | Click the toolbar icon | `action.onClicked` opens `lastPreview.html` with the most recently previewed JSON, or an empty editor you can paste into. It is a free-form workspace, so the Raw/Tree toggle is hidden here. There is intentionally **no action popup** (a popup suppresses `onClicked`) |
 | **Settings popover** | ⚙ in either viewer's title bar | Six options, applied instantly to every open viewer via `storage.onChanged` |
 
 Both viewers render the same `src/components/ViewerShell.vue`, so they look and behave identically. The title bar holds the ⚙ button, a Raw / Tree toggle, a `jsontoolbox.cc` link and a support link (Ko-fi, or a locally bundled WeChat / Alipay QR modal when the UI language is 中文).
@@ -37,6 +37,7 @@ Detection is deliberately conservative and **silent**: on any ordinary page the 
 The viewer is a **local copy** of the site's JSON editor (`src/editor/`), vendored so plugin-only UX changes need no npm release.
 
 - CodeMirror 6 source editor + tree and split view; **editable** (not read-only), with node rename / type change / add / remove / move, bulk value set and 100-step undo/redo.
+- Pasting a whole JSON document into the source editor auto-formats it with the current indent setting. Oversized pastes are still blocked, and invalid JSON is pasted unchanged so the error indicator can explain what went wrong.
 - Table view for array roots (column show/hide, header sorting, CSV export). The view switcher is hidden for object / scalar roots.
 - Search by key, value, path, all or JSONPath: result drawer, cyclic prev/next, Enter / Shift+Enter, Esc, Ctrl/Cmd+F. 250 ms debounce, 5000-match / 400k-node caps, progressive 1500-row tree rendering.
 - Value insights: colors, timestamps, JWT, base64, image / audio / video / PDF URLs, plain URLs, email, UUID, IPv4, markdown and regex.
@@ -84,7 +85,7 @@ The store listing and privacy policy must describe the local storage and the med
 - `src/editor/core/parse.ts` (`analyzeJson`) is the detection predicate used by `entrypoints/content.ts`.
 - Viewer-only hardening: debounced/capped search, progressive flat-tree rendering, a hidden inner toolbar, `allowedViews` gated on an array root, and plain-CSS `--je-*` / `--v-*` tokens (no Tailwind runtime in the content script).
 - `tsconfig.json` disables `noUncheckedIndexedAccess` and `noImplicitOverride` because the copied editor sources predate WXT's stricter defaults.
-- Two independent locale systems: `public/_locales/{en,zh,zh_CN}/messages.json` drives manifest strings and `browser.i18n.getMessage` (follows the **browser UI language**; `zh_CN` is Chrome's standard Simplified Chinese code and the bare `zh` folder is kept for compatibility), while `src/editor/i18n/{en,zh}.ts` drives all viewer copy (follows the user's **Language** setting). There is no vue-i18n dependency.
+- Two locale layers: `public/_locales/{en,zh,zh_CN,ja}/messages.json` drives only the manifest name and short description (follows the **browser UI language**; `zh_CN` is Chrome's standard Simplified Chinese code, the bare `zh` folder is kept for compatibility, and `ja` covers Japanese). `src/editor/i18n/{en,zh,ja}.ts` drives every string in the viewer, including the title bar, and follows the user's **Language** setting (English / 中文 / 日本語). On a fresh install that setting is inferred from `browser.i18n.getUILanguage()` (`zh*` → 中文, `ja*` → 日本語, otherwise English); once anything is saved, the explicit choice wins. English and Japanese keep the Ko-fi support link; the bundled payment QR modal is Chinese-only. There is no vue-i18n dependency.
 - The four PNGs in `public/` came from the site's 512×512 app icon. Images used inside the viewer are imported with `?inline` so they survive a strict host-page CSP.
 
 ## Development
@@ -106,21 +107,23 @@ Load the unpacked extension from `chrome://extensions` → Developer mode → `.
 ### Manual verification
 
 1. Open a `.json` URL → overlay appears; the original `<pre>` is untouched underneath; the title bar shows ⚙, Raw/Tree, site and support links.
-2. Raw → text view; Tree → editor returns.
+2. On the JSON-page overlay: Raw → text view; Tree → editor returns. The last-preview tab has no Raw button.
 3. `https://example.com`, a blog post with `<pre><code>{...}</code></pre>`, a GitHub blob → no overlay, no toast, no DOM change.
 4. `https://jsontoolbox.cc/...` unaffected; `https://resources.jsontoolbox.cc/orders-1mb.json` beautified.
 5. Change theme / indent / view / language in ⚙ → applies live without a reload.
 6. Turn auto-beautify off in the last-preview tab → the overlay is removed and the native `<pre>` shows again; on → re-mounts.
 7. Set Language = 中文 → viewer copy switches and the support link opens the QR modal.
 8. DevTools Network: no requests of our own; with media previews off, no third-party requests either.
+9. Paste a minified `{"a":1,"b":[2,3]}` into the source editor → it becomes multi-line with the current indent and stays undoable in one step; paste invalid text → it is inserted unchanged and the status bar shows the error.
 
 ## Store listing
 
-- Name and short description (≤132 chars) live in `public/_locales/{en,zh,zh_CN}/messages.json` (`extName` / `extDescription`) and are the source of `name` / `description` in the generated manifest. The detailed description, category (Developer Tools), privacy policy URL, permission justifications and promo assets are filled in the store dashboard.
+- Name and short description (≤132 chars) live in `public/_locales/{en,zh,zh_CN,ja}/messages.json` (`extName` / `extDescription`) and are the source of `name` / `description` in the generated manifest. The detailed description, category (Developer Tools), privacy policy URL, permission justifications and promo assets are filled in the store dashboard.
 - Required assets: a 128×128 store icon (`public/icon-128.png`), at least one and up to five 1280×800 screenshots, and a 440×280 small promo tile. A 1400×560 marquee image and a demo video are optional.
 - `demo/object-showcase.json` and `demo/table-orders.json` are sample documents for screenshots and manual testing (object root for tree / search / value insights, array root for table / sorting / CSV export). They are **not** bundled into the extension.
 - `scripts/capture-screenshots.cjs` regenerates the five 1280×800 PNGs with Playwright: default writes to `store-assets/` (English), `--zh` writes to `store-assets/zh/` (Chinese, same five shots). It loads a staged copy of `.output/chrome-mv3`; for the English set the Chinese locales are stripped so `chrome.i18n` falls back to `default_locale`. The real build output is untouched. The Chromium executable path is pinned to this machine's `chromium-1223`.
 - `scripts/generate-promo-images.cjs` renders `store-assets/promo-440x280.png` (required small promo tile) and `store-assets/marquee-1400x560.png` (optional marquee) from HTML/CSS with no image library. The marquee embeds screenshot 01, so regenerate the screenshots first.
+- The settings panel has a neutral feedback link driven by `FEEDBACK_URL` in `utils/constants.ts` (currently the GitHub issue tracker). After listing, point it at the store's `/reviews` URL. No rating prompt, incentive or repeated popup is shown in the UI.
 
 `docs/popup-config-integration.md` is a historical design document from the removed-popup refactor and no longer describes the current code.
 

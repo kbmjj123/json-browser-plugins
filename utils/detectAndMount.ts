@@ -118,9 +118,9 @@ export function detectAndMount(
   const iconUrl = iconDataUrl
 
   // The shared shell renders the top bar, site/support links, the QR modal and
-  // the raw/tree toggle; the editor itself is mounted inside it. This is the
-  // exact same component the last-preview page uses, so the two hosts look and
-  // behave identically.
+  // the raw/tree toggle — kept here because this overlay was detected from an
+  // actual JSON document, so "Raw" is meaningful. The last-preview page is a
+  // free-form workspace and hides that toggle.
   const app = createApp(ViewerShell, {
     editorOptions: editorOptions(options),
     labels,

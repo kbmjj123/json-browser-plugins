@@ -2,6 +2,8 @@ import type { Messages } from './en'
 
 /** 简体中文。键集合必须与 `en.ts` 严格一致（类型系统会强制校验）。 */
 export const zh: Messages = {
+  viewerTitle: 'JSON Toolbox 查看器',
+  previewTitle: 'JSON 预览',
   valid: 'JSON 有效',
   invalid: 'JSON 无效',
   empty: '暂无内容 —— 在左侧粘贴 JSON。',
@@ -117,4 +119,5 @@ export const zh: Messages = {
   auto_beautify: '自动美化网页',
   privacy: '不上传任何数据；设置与最近预览仅存本机。预览图片与媒体时，浏览器可能请求 JSON 中的第三方链接。',
   visit_site: '访问 jsontoolbox.cc',
+  feedback: '反馈建议',
 }

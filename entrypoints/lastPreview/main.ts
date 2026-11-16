@@ -2,6 +2,7 @@ import { createApp, type ComponentPublicInstance } from 'vue'
 import { browser } from 'wxt/browser'
 import ViewerShell from '../../src/components/ViewerShell.vue'
 import type { JsonEditorOptions } from '../../src/editor/wc/defineJsonEditor'
+import { createTranslator } from '../../src/editor/i18n'
 import { getOptions, STORAGE_KEY, DEFAULT_OPTIONS, resolveDark, type ExtensionOptions } from '../../utils/options'
 import { SITE_URL, KO_FI_URL } from '../../utils/constants'
 // Inlined at build time so extension images are data URIs. Although this page is
@@ -54,6 +55,19 @@ function buildOptions(next: ExtensionOptions, value: string): JsonEditorOptions 
   }
 }
 
+function buildLabels(
+  locale: ExtensionOptions['locale'],
+  hostname: string | null,
+): ViewerShellLabels {
+  const t = createTranslator(locale)
+  return {
+    title: hostname ? `${t('previewTitle')} · ${hostname}` : t('previewTitle'),
+    raw: t('raw'),
+    tree: t('tree'),
+    site: 'JSON Toolbox',
+  }
+}
+
 async function main(): Promise<void> {
   const host = document.getElementById('app')
   if (!host) return
@@ -77,23 +91,17 @@ async function main(): Promise<void> {
   // (the user can paste/type) instead of a "nothing yet" message.
   const value = preview && typeof preview.text === 'string' ? preview.text : ''
 
+  let hostname: string | null = null
   if (preview && typeof preview.url === 'string') {
     try {
-      const url = new URL(preview.url)
-      document.title = `JSON Preview · ${url.hostname}`
+      hostname = new URL(preview.url).hostname
     } catch {
-      document.title = 'JSON Preview'
+      // Keep the generic title when the stored URL cannot be parsed.
     }
-  } else {
-    document.title = 'JSON Preview'
   }
+  document.title = buildLabels(opts.locale, hostname).title
 
-  const labels: ViewerShellLabels = {
-    title: document.title,
-    raw: browser.i18n.getMessage('viewerRaw'),
-    tree: browser.i18n.getMessage('viewerTree'),
-    site: browser.i18n.getMessage('extName'),
-  }
+  const labels = buildLabels(opts.locale, hostname)
 
   const editorOptions = buildOptions(opts, value)
   const wechatUrl = wechatDataUrl
@@ -108,6 +116,7 @@ async function main(): Promise<void> {
     wechatUrl,
     alipayUrl,
     iconUrl,
+    hideRawToggle: true,
   })
   const shell = shellApp.mount(host) as unknown as ShellHandle & ComponentPublicInstance
 
@@ -126,6 +135,7 @@ async function main(): Promise<void> {
     const next = { ...opts, ...((change.newValue as Partial<ExtensionOptions>) ?? {}) }
     opts = next
     shell.setOptions(buildOptions(next, value))
+    shell.setLabels(buildLabels(next.locale, hostname))
   })
 }
 

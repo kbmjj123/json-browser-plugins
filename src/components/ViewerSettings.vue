@@ -12,6 +12,7 @@ import {
 } from '../../utils/options'
 import settingsCss from './ViewerSettings.css?inline'
 import { injectStylesIntoRoot } from '../../utils/injectShadowStyles'
+import { FEEDBACK_URL } from '../../utils/constants'
 
 const props = withDefaults(
   defineProps<{
@@ -22,8 +23,10 @@ const props = withDefaults(
     hideAuto?: boolean
     /** Destination for the "visit site" link in the footer. */
     siteUrl?: string
+    /** Neutral feedback link in the footer; no rating prompt or incentive. */
+    feedbackUrl?: string
   }>(),
-  { hideAuto: false, siteUrl: 'https://jsontoolbox.cc' },
+  { hideAuto: false, siteUrl: 'https://jsontoolbox.cc', feedbackUrl: FEEDBACK_URL },
 )
 
 const emit = defineEmits<{ close: [] }>()
@@ -133,6 +136,7 @@ onMounted(async () => {
         <select :value="language" @change="onLanguage">
           <option value="en">English</option>
           <option value="zh">中文</option>
+          <option value="ja">日本語</option>
         </select>
       </div>
 
@@ -149,9 +153,14 @@ onMounted(async () => {
 
     <div class="vs-footer">
       <p class="vs-privacy">{{ t('privacy') }}</p>
-      <a class="vs-site" :href="siteUrl" target="_blank" rel="noopener">
-        {{ t('visit_site') }} ↗
-      </a>
+      <div class="vs-links">
+        <a class="vs-site" :href="siteUrl" target="_blank" rel="noopener">
+          {{ t('visit_site') }} ↗
+        </a>
+        <a class="vs-site" :href="feedbackUrl" target="_blank" rel="noopener">
+          {{ t('feedback') }} ↗
+        </a>
+      </div>
     </div>
   </div>
 </template>

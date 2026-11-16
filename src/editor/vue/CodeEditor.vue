@@ -104,6 +104,10 @@ onMounted(() => {
     indent: props.indent,
     root,
     maxBytes: props.maxBytes,
+    formatPasted: (text) => {
+      const result = formatJson(text, props.indent)
+      return result.error ? undefined : result.text
+    },
     onDocChange: (value) => emit('update:modelValue', value),
     onOversizedPaste: (info) => emit('oversized-paste', info),
     onLineHover: (line) => emit('hover-line', line),
