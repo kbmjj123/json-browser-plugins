@@ -4,11 +4,11 @@ export const SITE_URL = 'https://jsontoolbox.cc'
 export const KO_FI_URL = 'https://ko-fi.com/kbmjj123'
 
 /**
- * Neutral feedback destination in the settings panel. No rating prompts or
- * incentives are shown. Initially the public issue tracker; after listing this
- * can be swapped for the store's `/reviews` URL without touching UI code.
+ * Neutral review destination in the settings panel. No rating prompts or
+ * incentives are shown; it points straight to this extension's Chrome Web
+ * Store reviews page so users can leave a public review voluntarily.
  */
-export const FEEDBACK_URL = 'https://github.com/kbmjj123/json-browser-plugins/issues'
+export const FEEDBACK_URL = 'https://chromewebstore.google.com/detail/json-toolbox/iifmieidldhenocaekobhhinbhojlfoi/reviews'
 
 /**
  * Never auto-beautify the tool site's own UI pages. Exact hosts only — NOT a
