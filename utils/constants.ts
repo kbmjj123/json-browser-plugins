@@ -5,10 +5,20 @@ export const KO_FI_URL = 'https://ko-fi.com/kbmjj123'
 
 /**
  * Neutral review destination in the settings panel. No rating prompts or
- * incentives are shown; it points straight to this extension's Chrome Web
- * Store reviews page so users can leave a public review voluntarily.
+ * incentives are shown; users can leave a public review voluntarily on the
+ * store for whichever browser build they installed.
+ *
+ * Firefox uses the AMO slug reserved at submission time (`jsontoolbox-cc`).
+ * If AMO assigns a different slug, update FIREFOX_FEEDBACK_URL here.
  */
-export const FEEDBACK_URL = 'https://chromewebstore.google.com/detail/json-toolbox/iifmieidldhenocaekobhhinbhojlfoi/reviews'
+const CHROME_FEEDBACK_URL =
+  'https://chromewebstore.google.com/detail/json-toolbox/iifmieidldhenocaekobhhinbhojlfoi/reviews'
+const FIREFOX_FEEDBACK_URL =
+  'https://addons.mozilla.org/firefox/addon/jsontoolbox-cc/reviews/'
+
+export const FEEDBACK_URL = import.meta.env.FIREFOX
+  ? FIREFOX_FEEDBACK_URL
+  : CHROME_FEEDBACK_URL
 
 /**
  * Never auto-beautify the tool site's own UI pages. Exact hosts only — NOT a

@@ -1,7 +1,7 @@
 # JSON Toolbox — browser extension
 
 A WXT + Vue 3 companion extension for [jsontoolbox.cc](https://jsontoolbox.cc).
-Chrome / Edge **Manifest V3**, `minimum_chrome_version: 116`, version `1.0.0`, MIT.
+Chrome / Edge **Manifest V3** (`minimum_chrome_version: 116`) and Firefox **Manifest V3** (`gecko.strict_min_version: 128.0`). Version `1.0.1`, MIT.
 
 Source: [github.com/kbmjj123/json-browser-plugins](https://github.com/kbmjj123/json-browser-plugins)
 
@@ -95,12 +95,15 @@ This is a standalone repository; scripts run from its own root.
 | Script | Purpose |
 |---|---|
 | `dev` | HMR dev build for Chrome (`wxt -b chrome`) |
+| `dev:firefox` | HMR dev build for Firefox (`wxt -b firefox --mv3`) |
 | `build` | produces `.output/chrome-mv3/` |
-| `zip` | produces the uploadable zip |
+| `build:firefox` | produces `.output/firefox-mv3/` |
+| `zip` | produces the Chrome uploadable zip |
+| `zip:firefox` | produces the Firefox/AMO uploadable zip |
 | `compile` | `vue-tsc --noEmit` |
 | `postinstall` | `wxt prepare` |
 
-Load the unpacked extension from `chrome://extensions` → Developer mode → `.output/chrome-mv3`. WXT regenerates the literal `getMessage` key types from `_locales` and the auto-import types from `utils/` / `composables/` during `prepare`, so regenerate them after editing locale files or adding/removing sources there. `.wxt/` is a generated directory and must not be edited by hand.
+Load the unpacked Chrome build from `chrome://extensions` → Developer mode → `.output/chrome-mv3`; load the Firefox build temporarily via `about:debugging` → "This Firefox" → "Load Temporary Add-on" → any file in `.output/firefox-mv3/`. The explicit `--mv3` flag matters: WXT defaults Firefox to MV2, which has no `browser.action` or service worker. WXT regenerates the literal `getMessage` key types from `_locales` and the auto-import types from `utils/` / `composables/` during `prepare`, so regenerate them after editing locale files or adding/removing sources there. `.wxt/` is a generated directory and must not be edited by hand.
 
 `tailwind.config.js` / `postcss.config.cjs` are kept so Vite's autoprefixer step keeps working; no stylesheet uses Tailwind directives anymore and no Tailwind runtime is bundled.
 
@@ -119,11 +122,13 @@ Load the unpacked extension from `chrome://extensions` → Developer mode → `.
 ## Store listing
 
 - Name and short description (≤132 chars) live in `public/_locales/{en,zh,zh_CN,ja,fr,es,de}/messages.json` (`extName` / `extDescription`) and are the source of `name` / `description` in the generated manifest. The full descriptions are kept in `store-descriptions/{en,zh,ja,fr,es,de}.txt` and pasted into the store dashboard; keep the language list, permission notes and privacy wording in sync across all six files. Category (Developer Tools), privacy policy URL, permission justifications and promo assets are also filled in the store dashboard.
-- Required assets: a 128×128 store icon (`public/icon-128.png`), at least one and up to five 1280×800 screenshots, and a 440×280 small promo tile. A 1400×560 marquee image and a demo video are optional.
+- Required assets: a 128×128 store icon (`public/icon-128.png`), at least one and up to five 1280×800 screenshots, and a 440×280 small promo tile. A 1400×560 marquee image and a demo video are optional. The same 1280×800 PNGs satisfy AMO's screenshot requirement; the 440×280 tile and marquee are Chrome/Edge-only.
 - `demo/object-showcase.json` and `demo/table-orders.json` are sample documents for screenshots and manual testing (object root for tree / search / value insights, array root for table / sorting / CSV export). They are **not** bundled into the extension.
 - `scripts/capture-screenshots.cjs` regenerates the five 1280×800 PNGs with Playwright: default → `store-assets/` (English), `--zh` → `store-assets/zh/`, `--ja` → `store-assets/ja/`, `--fr` → `store-assets/fr/`, `--es` → `store-assets/es/`, `--de` → `store-assets/de/`, same five shots each. It loads a staged copy of `.output/chrome-mv3`; for English the other locales are stripped so `chrome.i18n` falls back to `default_locale`, and for ja/fr/es/de the staged JS is patched with the matching dictionary (plus fr/es/de language options) because the current build predates those i18n sources. The real build output is untouched. The Chromium executable path is pinned to this machine's `chromium-1223`.
 - `scripts/generate-promo-images.cjs` renders `store-assets/promo-440x280.png` (required small promo tile) and `store-assets/marquee-1400x560.png` (optional marquee) from HTML/CSS with no image library. The marquee embeds screenshot 01, so regenerate the screenshots first.
-- The settings panel has a neutral review link driven by `FEEDBACK_URL` in `utils/constants.ts`, pointing to this extension's Chrome Web Store `/reviews` page (extension ID `iifmieidldhenocaekobhhinbhojlfoi`). No rating prompt, incentive or repeated popup is shown in the UI.
+- The settings panel has a neutral review link driven by `FEEDBACK_URL` in `utils/constants.ts`: Chrome/Edge builds point to the Chrome Web Store `/reviews` page (extension ID `iifmieidldhenocaekobhhinbhojlfoi`), Firefox builds to the AMO `/reviews` page for the reserved slug `jsontoolbox-cc`. No rating prompt, incentive or repeated popup is shown in the UI. If AMO assigns a different slug, update `FIREFOX_FEEDBACK_URL` before submitting.
+- Firefox-specific packaging: `manifest.json` carries `browser_specific_settings.gecko.id = jsontoolbox@jsontoolbox.cc`, `strict_min_version = 128.0`, and `data_collection_permissions.required = ["none"]` (mandatory for new AMO submissions since 2025-11-03). The `<all_urls>` content-script match still triggers a broad-access warning; no data leaves the device.
+- Local `file://` JSON: Firefox 153+ requires users to manually enable **about:addons → this extension → Permissions and data → "Allow access to file URLs"**. The manifest already matches `file:///*`, but the permission is off by default even for existing installs after upgrading to 153. Chrome users must likewise enable "Allow access to file URLs" on the extension card.
 
 `docs/popup-config-integration.md` is a historical design document from the removed-popup refactor and no longer describes the current code.
 
@@ -131,5 +136,5 @@ Load the unpacked extension from `chrome://extensions` → Developer mode → `.
 
 - Intercepting `fetch` / `XMLHttpRequest` JSON responses (needs MAIN-world monkey-patching, brittle under MV3 CSP).
 - Code splitting for the content script (WXT builds content scripts as a single IIFE).
-- Firefox / Safari builds and additional store locales.
+- Safari builds and additional store locales.
 - Known rough edges: editing in the last-preview tab writes to `storage.local` without a size cap or error handling; re-applying settings resets the editor to the text it was mounted with.
