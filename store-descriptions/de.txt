@@ -1,4 +1,4 @@
-JSON Toolbox verwandelt das rohe, unlesbare JSON, das Chrome als einfachen <pre>-Text anzeigt, in einen echten Viewer — automatisch, auf jeder Seite, ohne einen Klick.
+JSON Toolbox verwandelt das rohe, unlesbare JSON, das Browser als einfachen <pre>-Text anzeigt, in einen echten Viewer — automatisch, auf jeder Seite, ohne einen Klick.
 
 SO FUNKTIONIERT ES
 Installiere die Erweiterung und öffne eine beliebige URL, die JSON zurückgibt. Wenn die gesamte Seite ein einziges gültiges JSON-Dokument ist, ersetzt ein Vollbild-Viewer den Rohtext. Auf allen anderen Seiten (Blogs, Dokumentation, GitHub, Dashboards) tut die Erweiterung nichts — kein Popup, keine Benachrichtigung, keine DOM-Änderungen. Klicke jederzeit auf das Symbol in der Symbolleiste, um das zuletzt angesehene JSON in einem eigenen Tab erneut zu öffnen, oder füge dort JSON ein und arbeite von vorne.
@@ -9,7 +9,7 @@ WAS DU BEKOMMST
 • Suche: Schlüssel, Werte, Pfade, alles oder JSONPath. Ergebnisbereich, zyklisches Vorher/Nächster, Enter / Umschalt+Enter, Esc zum Leeren, Strg/Cmd+F. Die Suche ist gedrosselt und begrenzt, lange Bäume werden beim Scrollen schrittweise gerendert.
 • Wert-Analysen: Farben, Zeitstempel, JWTs, Base64, UUIDs, IPs, Markdown, URLs und E-Mails; Bild-/Audio-/Video-/PDF-Vorschauen mit tastaturbedienbarer Lightbox, Einzel- und Sammel-Download.
 • Rohdaten/Baum-Umschalter, Wert / Pfad / JSONPath / gesamtes Dokument kopieren, als Datei herunterladen, Statusleiste mit Fehlerzeile und -spalte.
-• Funktioniert auch mit lokalen .json-Dateien (Chrome verlangt, dass „Zugriff auf Datei-URLs zulassen“ auf der Detailseite der Erweiterung aktiviert ist).
+• Funktioniert auch mit lokalen .json-Dateien (Browser verlangt, dass „Zugriff auf Datei-URLs zulassen“ auf der Detailseite der Erweiterung aktiviert ist).
 
 EINSTELLUNGEN
 Im ⚙-Panel wählst du Design (hell / dunkel / automatisch), Einrückung (2 / 4 / Tabulator), Standardansicht, Sprache (English / 中文 / 日本語 / Français / Español / Deutsch), Medienvorschauen und den Hauptschalter für automatische Formatierung. Änderungen wirken sofort in geöffneten Viewern und werden nur auf deinem Gerät gespeichert.
@@ -21,8 +21,8 @@ Ein Hinweis: Wenn „Bilder und Medien anzeigen“ aktiviert ist (Standard), wer
 
 BERECHTIGUNGEN
 • storage — speichert deine Einstellungen und das zuletzt angesehene JSON lokal.
-• Inhaltsskript auf allen Websites — Chrome bietet keine API, um anhand des Content-Type der Antwort zu injizieren; die automatische Erkennung benötigt daher ein breites Muster. Unser Skript liest nur den vorhandenen <pre>-Text, analysiert ihn im Speicher und rendert ihn in einen Shadow Root; auf Seiten ohne JSON beendet es sich, ohne die Seite zu berühren. Es werden keine host_permissions angefordert.
-• file:///* — dieselbe Erkennung für lokale .json-Dateien; erfordert deine manuelle Freigabe in Chrome.
+• Inhaltsskript auf allen Websites — Browser bietet keine API, um anhand des Content-Type der Antwort zu injizieren; die automatische Erkennung benötigt daher ein breites Muster. Unser Skript liest nur den vorhandenen <pre>-Text, analysiert ihn im Speicher und rendert ihn in einen Shadow Root; auf Seiten ohne JSON beendet es sich, ohne die Seite zu berühren. Es werden keine host_permissions angefordert.
+• file:///* — dieselbe Erkennung für lokale .json-Dateien; erfordert deine manuelle Freigabe in Browser.
 
 Dokumente über 2 MiB werden ausgelassen. Die Erweiterung überspringt bewusst jsontoolbox.cc und www.jsontoolbox.cc, damit die eigenen Werkzeuge der Website nicht beeinflusst werden.
 

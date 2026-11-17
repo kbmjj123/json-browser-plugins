@@ -1,4 +1,4 @@
-JSON Toolbox transforme le JSON brut et illisible que Chrome affiche comme texte <pre> en un véritable visualiseur — automatiquement, sur n'importe quelle page, sans rien cliquer.
+JSON Toolbox transforme le JSON brut et illisible que Browser affiche comme texte <pre> en un véritable visualiseur — automatiquement, sur n'importe quelle page, sans rien cliquer.
 
 COMMENT ÇA MARCHE
 Installez l'extension et ouvrez une URL qui renvoie du JSON. Si la page entière est un seul document JSON valide, un visualiseur plein écran remplace le texte brut. Sur toutes les autres pages (blogs, documentation, GitHub, tableaux de bord), l'extension ne fait rien — aucun popup, aucune notification, aucune modification du DOM. Cliquez à tout moment sur l'icône de la barre d'outils pour rouvrir le JSON prévisualisé le plus récent dans un onglet dédié, ou collez-y du JSON pour travailler depuis zéro.
@@ -9,7 +9,7 @@ CE QUE VOUS OBTENEZ
 • Recherche : clés, valeurs, chemins, tout, ou JSONPath. Tiroir de résultats, précédent/suivant en boucle, Entrée / Maj+Entrée, Échap pour effacer, Ctrl/Cmd+F. La recherche est temporisée et plafonnée, et les longues arborescences se rendent progressivement au fil du défilement.
 • Analyse des valeurs : couleurs, horodatages, JWT, base64, UUID, IP, Markdown, URL et e-mails ; aperçus image / audio / vidéo / PDF avec lightbox navigable au clavier, téléchargement d'une image ou en lot.
 • Bascule Raw / Arborescence, copie de la valeur / du chemin / du JSONPath / du document entier, téléchargement sous forme de fichier, barre d'état avec le numéro de ligne et de colonne de l'erreur.
-• Fonctionne aussi avec les fichiers .json locaux (Chrome exige d'activer « Autoriser l'accès aux fichiers URL » sur la page de détails de l'extension).
+• Fonctionne aussi avec les fichiers .json locaux (Browser exige d'activer « Autoriser l'accès aux fichiers URL » sur la page de détails de l'extension).
 
 PARAMÈTRES
 Le panneau ⚙ permet de choisir le thème (clair / sombre / auto), l'indentation (2 / 4 / Tabulation), la vue par défaut, la langue (English / 中文 / 日本語 / Français / Español / Deutsch), les aperçus multimédias et l'interrupteur général de mise en forme automatique. Les modifications s'appliquent immédiatement aux visualiseurs ouverts et sont enregistrées sur votre appareil.
@@ -21,8 +21,8 @@ Toute l'analyse, la modification, la mise en forme et la recherche se font local
 
 AUTORISATIONS
 • storage — enregistre localement vos paramètres et le JSON prévisualisé le plus récent.
-• Script de contenu sur tous les sites — Chrome ne propose pas d'API d'injection selon le type de contenu de la réponse ; la détection automatique exige donc une correspondance large. Notre script lit uniquement le texte <pre> existant, l'analyse en mémoire et le rend dans un shadow root ; sur les pages non JSON, il quitte sans toucher à la page. Aucune host_permissions n'est demandée.
-• file:///* — même détection pour les fichiers .json locaux ; nécessite votre activation manuelle dans Chrome.
+• Script de contenu sur tous les sites — Browser ne propose pas d'API d'injection selon le type de contenu de la réponse ; la détection automatique exige donc une correspondance large. Notre script lit uniquement le texte <pre> existant, l'analyse en mémoire et le rend dans un shadow root ; sur les pages non JSON, il quitte sans toucher à la page. Aucune host_permissions n'est demandée.
+• file:///* — même détection pour les fichiers .json locaux ; nécessite votre activation manuelle dans Browser.
 
 Les documents de plus de 2 MiB sont ignorés. L'extension évite délibérément jsontoolbox.cc et www.jsontoolbox.cc afin de ne pas perturber les outils du site.
 

@@ -1,4 +1,4 @@
-JSON Toolbox turns the raw, unreadable JSON that Chrome shows as plain <pre> text into a proper viewer — automatically, on any page, with nothing to click.
+JSON Toolbox turns the raw, unreadable JSON that Browser shows as plain <pre> text into a proper viewer — automatically, on any page, with nothing to click.
 
 HOW IT WORKS
 Install it and open any URL that returns JSON. If the whole page is a single valid JSON document, a full-screen viewer replaces the raw text. On every other page (blogs, docs, GitHub, dashboards) the extension does nothing — no popup, no notification, no DOM changes. Click the toolbar icon any time to reopen your most recently previewed JSON in a dedicated tab, or paste JSON there and work on it from scratch.
@@ -9,7 +9,7 @@ WHAT YOU GET
 • Search: keys, values, paths, everything, or JSONPath. Result drawer, cyclic previous/next, Enter / Shift+Enter, Esc to clear, Ctrl/Cmd+F. Search is debounced and capped, and long trees render progressively as you scroll.
 • Value insights: colors, timestamps, JWTs, base64, UUIDs, IPs, markdown, URLs and emails; image / audio / video / PDF previews with a keyboard-navigable lightbox, single-image and bulk download.
 • Raw / Tree toggle, copy value / path / JSONPath / whole document, download as a file, status bar with error line and column.
-• Works with local .json files too (Chrome requires "Allow access to file URLs" to be enabled on the extension's details page).
+• Works with local .json files too (Browser requires "Allow access to file URLs" to be enabled on the extension's details page).
 
 SETTINGS
 The ⚙ panel lets you choose theme (light / dark / auto), indentation (2 / 4 / Tab), default view, language (English / 中文 / 日本語 / Français / Español / Deutsch), media previews, and the auto-beautify master switch. Changes apply instantly across open viewers and are saved on your device.
@@ -21,8 +21,8 @@ One thing to be aware of: when "Preview images & media" is on (the default), URL
 
 PERMISSIONS
 • storage — saves your settings and the most recently previewed JSON locally.
-• Content script on all sites — Chrome has no API to inject based on a response's content type, so automatic detection requires a broad match. Our script only reads the existing <pre> text, parses it in memory and renders into a shadow root; on non-JSON pages it exits without touching the page. No host_permissions are requested.
-• file:///* — same detection for local .json files; requires your manual opt-in in Chrome.
+• Content script on all sites — Browser has no API to inject based on a response's content type, so automatic detection requires a broad match. Our script only reads the existing <pre> text, parses it in memory and renders into a shadow root; on non-JSON pages it exits without touching the page. No host_permissions are requested.
+• file:///* — same detection for local .json files; requires your manual opt-in in Browser.
 
 Documents above 2 MiB are left untouched. The extension deliberately skips jsontoolbox.cc and www.jsontoolbox.cc so the site's own tools are unaffected.
 
